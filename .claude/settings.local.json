@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:help.aliyun.com)"
+    ],
+    "defaultMode": "bypassPermissions",
+    "deny": [],
+    "ask": []
+  },
+  "enabledMcpjsonServers": [
+    "chrome-mcp-server"
+  ]
+}
