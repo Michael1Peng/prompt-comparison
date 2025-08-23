@@ -114,31 +114,14 @@ ${promptText}
     }
 }
 
-async function main() {
-    const apiKey = process.env.DASHSCOPE_API_KEY;
-    const inputFile = './prompt-collection.json';
-    const outputFile = './analyzed-prompts.json';
-    
-    if (!apiKey) {
-        console.error('请设置环境变量 DASHSCOPE_API_KEY');
-        process.exit(1);
-    }
-
+async function analyzeItem(analyzer, item, index, total) {
     try {
-        const data = fs.readFileSync(inputFile, 'utf8');
-        const prompts = JSON.parse(data);
+        console.log(`[${index + 1}/${total}] 分析: ${item.name}`);
         
-        // 只处理第一个item进行测试
-        const firstItem = prompts[0];
-        console.log(`正在分析: ${firstItem.name}`);
-        console.log(`原文长度: ${firstItem.original_prompt.length} 字符\n`);
-        console.log('调用阿里云千问API进行智能分析...\n');
+        const analyzedElements = await analyzer.analyzePrompt(item.original_prompt);
         
-        const analyzer = new QianwenAnalyzer(apiKey);
-        const analyzedElements = await analyzer.analyzePrompt(firstItem.original_prompt);
-        
-        const result = {
-            所在文件: firstItem.name || '',
+        // 为item添加analysis字段
+        item.analysis = {
             角色能力: analyzedElements.角色能力 || '',
             任务请求: analyzedElements.任务请求 || '',
             背景情境: analyzedElements.背景情境 || '',
@@ -150,33 +133,82 @@ async function main() {
             信息: analyzedElements.信息 || '',
             评估优化: analyzedElements.评估优化 || '',
             调整: analyzedElements.调整 || '',
-            受众: analyzedElements.受众 || '',
-            original_content: firstItem.original_prompt
+            受众: analyzedElements.受众 || ''
         };
         
-        // 输出结果
-        const output = [result];
-        fs.writeFileSync(outputFile, JSON.stringify(output, null, 2), 'utf8');
-        
-        console.log('AI分析结果:');
-        console.log('所在文件:', result.所在文件);
-        console.log('角色/能力:', result.角色能力 || '(空)');
-        console.log('任务/请求:', result.任务请求 || '(空)');
-        console.log('背景/情境:', result.背景情境 || '(空)');
-        console.log('指令/行动:', result.指令行动 || '(空)');
-        console.log('输出规格:', result.输出规格 || '(空)');
-        console.log('示例:', result.示例 || '(空)');
-        console.log('限制/约束:', result.限制约束 || '(空)');
-        console.log('目标/期望:', result.目标期望 || '(空)');
-        console.log('信息:', result.信息 || '(空)');
-        console.log('评估/优化:', result.评估优化 || '(空)');
-        console.log('调整:', result.调整 || '(空)');
-        console.log('受众:', result.受众 || '(空)');
-        
-        console.log(`\n结果已保存到: ${outputFile}`);
+        console.log(`✅ [${index + 1}/${total}] 完成: ${item.name}`);
+        return item;
         
     } catch (error) {
-        console.error('分析失败:', error.message);
+        console.error(`❌ [${index + 1}/${total}] 失败: ${item.name} - ${error.message}`);
+        // 分析失败时，添加空的analysis字段
+        item.analysis = {
+            角色能力: '', 任务请求: '', 背景情境: '', 指令行动: '',
+            输出规格: '', 示例: '', 限制约束: '', 目标期望: '',
+            信息: '', 评估优化: '', 调整: '', 受众: ''
+        };
+        return item;
+    }
+}
+
+async function concurrentAnalyze(analyzer, items, concurrency = 3) {
+    const results = [];
+    const total = items.length;
+    
+    for (let i = 0; i < items.length; i += concurrency) {
+        const batch = items.slice(i, i + concurrency);
+        const batchPromises = batch.map((item, batchIndex) => 
+            analyzeItem(analyzer, item, i + batchIndex, total)
+        );
+        
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+        
+        // 每个batch完成后稍作延迟，避免API限流
+        if (i + concurrency < items.length) {
+            console.log('等待1秒后继续下一批...\n');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+    }
+    
+    return results;
+}
+
+async function main() {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    const inputFile = './prompt-collection.json';
+    
+    if (!apiKey) {
+        console.error('请设置环境变量 DASHSCOPE_API_KEY');
+        process.exit(1);
+    }
+
+    try {
+        const data = fs.readFileSync(inputFile, 'utf8');
+        const prompts = JSON.parse(data);
+        
+        console.log(`开始并发分析 ${prompts.length} 个提示词项目...\n`);
+        
+        const analyzer = new QianwenAnalyzer(apiKey);
+        
+        // 并发分析所有items
+        const analyzedPrompts = await concurrentAnalyze(analyzer, prompts);
+        
+        // 直接更新原文件
+        fs.writeFileSync(inputFile, JSON.stringify(analyzedPrompts, null, 2), 'utf8');
+        
+        console.log(`\n🎉 全部完成！已更新原文件: ${inputFile}`);
+        console.log(`成功分析了 ${analyzedPrompts.length} 个项目`);
+        
+        // 统计分析结果
+        const successCount = analyzedPrompts.filter(item => 
+            item.analysis && Object.values(item.analysis).some(v => v.trim().length > 0)
+        ).length;
+        
+        console.log(`成功率: ${successCount}/${analyzedPrompts.length} (${(successCount/analyzedPrompts.length*100).toFixed(1)}%)`);
+        
+    } catch (error) {
+        console.error('分析过程失败:', error.message);
         process.exit(1);
     }
 }
