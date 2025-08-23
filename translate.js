@@ -11,7 +11,7 @@ class QianwenTranslator {
 
     async translate(text, targetLang = 'English') {
         const data = JSON.stringify({
-            model: 'qwen-turbo',
+            model: 'qwen-coder-plus',
             messages: [
                 {
                     role: 'system',
