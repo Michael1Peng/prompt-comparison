@@ -1,0 +1,18 @@
+[
+  {
+    "所在文件": "System Prompt Generator",
+    "角色能力": "The SYSTEM_PROMPT function generates a comprehensive system prompt by combining:\n\n1. Role definition based on selected mode",
+    "任务请求": "The prompt can be customized through:\n- File-based custom system prompts\n- Custom mode configurations\n- Global custom instructions\n- Mode-specific prompt components\n- Language and environment settings",
+    "背景情境": "The SYSTEM_PROMPT function generates a comprehensive system prompt by combining:",
+    "指令行动": "Structure:\n```\n${roleDefinition}\n\n${markdownFormattingSection()}\n\n${getSharedToolUseSection()}\n\n${getToolDescriptionsForMode(...)}\n\n${getToolUseGuidelinesSection(...)}\n\n${mcpServersSection}\n\n${getCapabilitiesSection(...)}\n\n${modesSection}\n\n${getRulesSection(...)}\n\n${getSystemInfoSection(...)}\n\n${getObjectiveSection(...)}\n\n${customInstructions}\n```",
+    "输出规格": "",
+    "示例": "",
+    "限制约束": "",
+    "目标期望": "The SYSTEM_PROMPT function generates a comprehensive system prompt by combining:\n\n12. Objective section",
+    "信息": "The SYSTEM_PROMPT function generates a comprehensive system prompt by combining:\n\n2. Markdown formatting section\n3. Shared tool use section\n4. Tool descriptions for the current mode\n5. Tool use guidelines\n6. MCP servers section (if applicable)\n7. Capabilities section\n8. Modes section\n9. Rules section\n10. System information section",
+    "评估优化": "",
+    "调整": "The prompt can be customized through:\n- File-based custom system prompts\n- Custom mode configurations\n- Global custom instructions\n- Mode-specific prompt components\n- Language and environment settings",
+    "受众": "",
+    "original_content": "The SYSTEM_PROMPT function generates a comprehensive system prompt by combining:\n\n1. Role definition based on selected mode\n2. Markdown formatting section\n3. Shared tool use section\n4. Tool descriptions for the current mode\n5. Tool use guidelines\n6. MCP servers section (if applicable)\n7. Capabilities section\n8. Modes section\n9. Rules section\n10. System information section\n11. Objective section\n12. Custom instructions\n\nThe prompt can be customized through:\n- File-based custom system prompts\n- Custom mode configurations\n- Global custom instructions\n- Mode-specific prompt components\n- Language and environment settings\n\nStructure:\n```\n${roleDefinition}\n\n${markdownFormattingSection()}\n\n${getSharedToolUseSection()}\n\n${getToolDescriptionsForMode(...)}\n\n${getToolUseGuidelinesSection(...)}\n\n${mcpServersSection}\n\n${getCapabilitiesSection(...)}\n\n${modesSection}\n\n${getRulesSection(...)}\n\n${getSystemInfoSection(...)}\n\n${getObjectiveSection(...)}\n\n${customInstructions}\n```"
+  }
+]
