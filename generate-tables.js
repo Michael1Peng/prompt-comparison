@@ -3,14 +3,14 @@
 const fs = require('fs');
 const path = require('path');
 
-// 读取 pubcollection.json 文件
-function loadPromptData() {
+// 读取 JSON 文件
+function loadPromptData(filePath = 'pubcollection.json') {
     try {
-        const dataPath = path.join(__dirname, 'pubcollection.json');
+        const dataPath = path.join(__dirname, filePath);
         const rawData = fs.readFileSync(dataPath, 'utf8');
         return JSON.parse(rawData);
     } catch (error) {
-        console.error('Error reading pubcollection.json:', error.message);
+        console.error(`Error reading ${filePath}:`, error.message);
         process.exit(1);
     }
 }
@@ -34,7 +34,26 @@ function truncateText(text, maxLength = 500) {
 }
 
 // 生成单个表格的HTML（行列翻转版本）
-function generateTable(prompts, tableIndex) {
+function generateTable(prompts, tableIndex, hasTranslation = false) {
+    const translationRows = hasTranslation ? `
+        <tr class="translation-desc-row">
+            <td class="field-label"><strong>中文描述</strong></td>
+            ${prompts.map(prompt => `
+                <td class="description-cell">
+                    ${escapeHtml(prompt.translated_description || '未翻译')}
+                </td>
+            `).join('')}
+        </tr>
+        <tr class="translation-content-row">
+            <td class="field-label"><strong>中文内容</strong></td>
+            ${prompts.map(prompt => `
+                <td class="content-cell">
+                    <pre><code>${escapeHtml(prompt.translated_prompt || '未翻译')}</code></pre>
+                </td>
+            `).join('')}
+        </tr>
+    ` : '';
+
     const tableHtml = `
     <div class="table-container">
         <h2>Prompt Collection Table ${tableIndex}</h2>
@@ -73,6 +92,7 @@ function generateTable(prompts, tableIndex) {
                             </td>
                         `).join('')}
                     </tr>
+                    ${translationRows}
                 </tbody>
             </table>
         </div>
@@ -83,6 +103,9 @@ function generateTable(prompts, tableIndex) {
 
 // 生成完整的HTML文档
 function generateHtmlDocument(prompts) {
+    // 检测是否有翻译字段
+    const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    
     // 将提示词按每4个分组
     const promptGroups = [];
     for (let i = 0; i < prompts.length; i += 4) {
@@ -217,6 +240,14 @@ function generateHtmlDocument(prompts) {
                 background: #fafbfc;
             }
             
+            .translation-desc-row {
+                background: #f0f8ff;
+            }
+            
+            .translation-content-row {
+                background: #f5f5ff;
+            }
+            
             details {
                 cursor: pointer;
             }
@@ -316,7 +347,7 @@ function generateHtmlDocument(prompts) {
             </div>
             
             ${promptGroups.map((group, index) => 
-                generateTable(group, index + 1)
+                generateTable(group, index + 1, hasTranslation)
             ).join('')}
             
             <footer style="text-align: center; margin-top: 40px; color: #666; font-size: 14px;">
@@ -332,6 +363,9 @@ function generateHtmlDocument(prompts) {
 
 // 生成Markdown格式的表格（行列翻转版本）
 function generateMarkdownTables(prompts) {
+    // 检测是否有翻译字段
+    const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    
     // 将提示词按每4个分组
     const promptGroups = [];
     for (let i = 0; i < prompts.length; i += 4) {
@@ -340,6 +374,9 @@ function generateMarkdownTables(prompts) {
 
     let markdown = `# Prompt Collection Analysis\n\n`;
     markdown += `**Total Prompts:** ${prompts.length} | **Tables:** ${promptGroups.length} | **Source:** RooCodeInc/roo-code\n\n`;
+    if (hasTranslation) {
+        markdown += `**🌐 Translation Available:** Chinese translations included\n\n`;
+    }
 
     promptGroups.forEach((group, index) => {
         markdown += `## Table ${index + 1}\n\n`;
@@ -383,6 +420,25 @@ function generateMarkdownTables(prompts) {
         });
         markdown += `\n`;
         
+        // 翻译字段
+        if (hasTranslation) {
+            // 中文描述行
+            markdown += `| **中文描述** |`;
+            group.forEach(prompt => {
+                const description = (prompt.translated_description || '未翻译').replace(/\|/g, '\\|').substring(0, 100) + '...';
+                markdown += ` ${description} |`;
+            });
+            markdown += `\n`;
+            
+            // 中文内容行
+            markdown += `| **中文内容** |`;
+            group.forEach(prompt => {
+                const contentPreview = (prompt.translated_prompt || '未翻译').replace(/\|/g, '\\|').replace(/\n/g, ' ').substring(0, 200) + '...';
+                markdown += ` ${contentPreview} |`;
+            });
+            markdown += `\n`;
+        }
+        
         markdown += `\n`;
     });
 
@@ -393,8 +449,17 @@ function generateMarkdownTables(prompts) {
 function main() {
     console.log('🚀 Starting prompt table generation...');
     
-    const prompts = loadPromptData();
-    console.log(`📊 Loaded ${prompts.length} prompts from pubcollection.json`);
+    // 支持命令行参数指定输入文件
+    const inputFile = process.argv[2] || 'prompt-collection.json';
+    
+    const prompts = loadPromptData(inputFile);
+    console.log(`📊 Loaded ${prompts.length} prompts from ${inputFile}`);
+    
+    // 检测翻译状态
+    const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    if (hasTranslation) {
+        console.log('🌐 Translation fields detected');
+    }
     
     // 生成HTML文件
     const htmlContent = generateHtmlDocument(prompts);
@@ -411,9 +476,11 @@ function main() {
     // 输出统计信息
     const tableCount = Math.ceil(prompts.length / 4);
     console.log(`\n📈 Summary:`);
+    console.log(`   • Input file: ${inputFile}`);
     console.log(`   • Total prompts: ${prompts.length}`);
     console.log(`   • Tables generated: ${tableCount}`);
     console.log(`   • Prompts per table: 4`);
+    console.log(`   • Translation support: ${hasTranslation ? 'Yes' : 'No'}`);
     console.log(`   • Output formats: HTML + Markdown`);
     
     console.log('\n🎉 Table generation completed successfully!');
