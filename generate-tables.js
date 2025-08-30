@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // 读取 JSON 文件
-function loadPromptData(filePath = 'pubcollection.json') {
+function loadPromptData(filePath = 'prompt-collection.json') {
     try {
         const dataPath = path.join(__dirname, filePath);
         const rawData = fs.readFileSync(dataPath, 'utf8');
@@ -33,8 +33,42 @@ function truncateText(text, maxLength = 500) {
     return text.substring(0, maxLength) + '...';
 }
 
+// 生成分析字段的HTML行
+function generateAnalysisRows(prompts) {
+    if (!prompts[0].analysis) return '';
+    
+    const analysisFields = [
+        { key: '角色能力', label: '角色/能力', class: 'analysis-role-row' },
+        { key: '任务请求', label: '任务/请求', class: 'analysis-task-row' },
+        { key: '背景情境', label: '背景/情境', class: 'analysis-context-row' },
+        { key: '指令行动', label: '指令/行动', class: 'analysis-instruction-row' },
+        { key: '输出规格', label: '输出规格', class: 'analysis-output-row' },
+        { key: '示例', label: '示例', class: 'analysis-example-row' },
+        { key: '限制约束', label: '限制/约束', class: 'analysis-constraint-row' },
+        { key: '目标期望', label: '目标/期望', class: 'analysis-goal-row' },
+        { key: '信息', label: '信息', class: 'analysis-info-row' },
+        { key: '评估优化', label: '评估/优化', class: 'analysis-eval-row' },
+        { key: '调整', label: '调整', class: 'analysis-adjust-row' },
+        { key: '受众', label: '受众', class: 'analysis-audience-row' }
+    ];
+
+    return analysisFields.map(field => `
+        <tr class="${field.class}">
+            <td class="field-label"><strong>${field.label}</strong></td>
+            ${prompts.map(prompt => `
+                <td class="analysis-cell">
+                    ${prompt.analysis && prompt.analysis[field.key] ? 
+                        `<div class="analysis-content">${escapeHtml(prompt.analysis[field.key])}</div>` : 
+                        '<div class="analysis-empty">-</div>'
+                    }
+                </td>
+            `).join('')}
+        </tr>
+    `).join('');
+}
+
 // 生成单个表格的HTML（行列翻转版本）
-function generateTable(prompts, tableIndex, hasTranslation = false) {
+function generateTable(prompts, tableIndex, hasTranslation = false, hasAnalysis = false) {
     const translationRows = hasTranslation ? `
         <tr class="translation-desc-row">
             <td class="field-label"><strong>中文描述</strong></td>
@@ -52,6 +86,14 @@ function generateTable(prompts, tableIndex, hasTranslation = false) {
                 </td>
             `).join('')}
         </tr>
+    ` : '';
+
+    const analysisRows = hasAnalysis ? `
+        <tr class="analysis-header-row">
+            <td class="field-label analysis-header"><strong>🔍 提示词元素分析</strong></td>
+            ${prompts.map(() => `<td class="analysis-header-cell"><strong>AI 智能分析结果</strong></td>`).join('')}
+        </tr>
+        ${generateAnalysisRows(prompts)}
     ` : '';
 
     const tableHtml = `
@@ -93,6 +135,7 @@ function generateTable(prompts, tableIndex, hasTranslation = false) {
                         `).join('')}
                     </tr>
                     ${translationRows}
+                    ${analysisRows}
                 </tbody>
             </table>
         </div>
@@ -103,8 +146,9 @@ function generateTable(prompts, tableIndex, hasTranslation = false) {
 
 // 生成完整的HTML文档
 function generateHtmlDocument(prompts) {
-    // 检测是否有翻译字段
+    // 检测是否有翻译字段和分析字段
     const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    const hasAnalysis = prompts.some(p => p.analysis);
     
     // 将提示词按每4个分组
     const promptGroups = [];
@@ -248,6 +292,60 @@ function generateHtmlDocument(prompts) {
                 background: #f5f5ff;
             }
             
+            .analysis-header-row {
+                background: #e8f5e8;
+                border-top: 2px solid #28a745;
+            }
+            
+            .analysis-header {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+                color: white !important;
+            }
+            
+            .analysis-header-cell {
+                background: #d1ecf1;
+                color: #0c5460;
+                font-size: 14px;
+                text-align: center;
+            }
+            
+            .analysis-cell {
+                max-width: 300px;
+                word-wrap: break-word;
+                font-size: 13px;
+                line-height: 1.4;
+                background: #f8f9fa;
+            }
+            
+            .analysis-content {
+                color: #495057;
+                padding: 8px;
+                border-radius: 4px;
+                background: white;
+                border-left: 3px solid #28a745;
+                margin: 2px 0;
+            }
+            
+            .analysis-empty {
+                color: #adb5bd;
+                text-align: center;
+                font-style: italic;
+                padding: 8px;
+            }
+            
+            .analysis-role-row { background: #fff3cd; }
+            .analysis-task-row { background: #d1ecf1; }
+            .analysis-context-row { background: #d4edda; }
+            .analysis-instruction-row { background: #e2e3e5; }
+            .analysis-output-row { background: #f8d7da; }
+            .analysis-example-row { background: #e7f3ff; }
+            .analysis-constraint-row { background: #f2dede; }
+            .analysis-goal-row { background: #dff0d8; }
+            .analysis-info-row { background: #f0f8ff; }
+            .analysis-eval-row { background: #fdf2e9; }
+            .analysis-adjust-row { background: #f3e2f3; }
+            .analysis-audience-row { background: #e6f3ff; }
+            
             details {
                 cursor: pointer;
             }
@@ -344,14 +442,17 @@ function generateHtmlDocument(prompts) {
             <h1>🤖 Prompt Collection Analysis</h1>
             <div class="stats">
                 📊 Total Prompts: ${prompts.length} | 📋 Tables: ${promptGroups.length} | 🔍 Source: RooCodeInc/roo-code
+                ${hasAnalysis ? ' | 🧠 AI Analysis: Enabled' : ''}
+                ${hasTranslation ? ' | 🌐 Translation: Available' : ''}
             </div>
             
             ${promptGroups.map((group, index) => 
-                generateTable(group, index + 1, hasTranslation)
+                generateTable(group, index + 1, hasTranslation, hasAnalysis)
             ).join('')}
             
             <footer style="text-align: center; margin-top: 40px; color: #666; font-size: 14px;">
                 <p>Generated on ${new Date().toLocaleDateString()} | Prompt Engineering Analysis</p>
+                ${hasAnalysis ? '<p>🤖 AI Analysis powered by Alibaba Cloud Qwen</p>' : ''}
             </footer>
         </div>
     </body>
@@ -361,10 +462,25 @@ function generateHtmlDocument(prompts) {
     return html;
 }
 
+// 生成分析字段的Markdown行
+function generateAnalysisMarkdownRows(group, analysisFields) {
+    return analysisFields.map(field => {
+        let row = `| **${field.label}** |`;
+        group.forEach(prompt => {
+            const content = prompt.analysis && prompt.analysis[field.key] ? 
+                prompt.analysis[field.key].replace(/\|/g, '\\|').replace(/\n/g, ' ').substring(0, 150) + '...' : 
+                '-';
+            row += ` ${content} |`;
+        });
+        return row;
+    }).join('\n');
+}
+
 // 生成Markdown格式的表格（行列翻转版本）
 function generateMarkdownTables(prompts) {
-    // 检测是否有翻译字段
+    // 检测是否有翻译字段和分析字段
     const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    const hasAnalysis = prompts.some(p => p.analysis);
     
     // 将提示词按每4个分组
     const promptGroups = [];
@@ -376,6 +492,9 @@ function generateMarkdownTables(prompts) {
     markdown += `**Total Prompts:** ${prompts.length} | **Tables:** ${promptGroups.length} | **Source:** RooCodeInc/roo-code\n\n`;
     if (hasTranslation) {
         markdown += `**🌐 Translation Available:** Chinese translations included\n\n`;
+    }
+    if (hasAnalysis) {
+        markdown += `**🧠 AI Analysis:** Prompt elements analyzed by Alibaba Cloud Qwen\n\n`;
     }
 
     promptGroups.forEach((group, index) => {
@@ -439,6 +558,44 @@ function generateMarkdownTables(prompts) {
             markdown += `\n`;
         }
         
+        // 分析字段
+        if (hasAnalysis) {
+            markdown += `\n### 🔍 AI分析结果\n\n`;
+            
+            const analysisFields = [
+                { key: '角色能力', label: '角色/能力' },
+                { key: '任务请求', label: '任务/请求' },
+                { key: '背景情境', label: '背景/情境' },
+                { key: '指令行动', label: '指令/行动' },
+                { key: '输出规格', label: '输出规格' },
+                { key: '示例', label: '示例' },
+                { key: '限制约束', label: '限制/约束' },
+                { key: '目标期望', label: '目标/期望' },
+                { key: '信息', label: '信息' },
+                { key: '评估优化', label: '评估/优化' },
+                { key: '调整', label: '调整' },
+                { key: '受众', label: '受众' }
+            ];
+            
+            // 分析表头
+            markdown += `| 分析元素 |`;
+            group.forEach((prompt, idx) => {
+                markdown += ` Prompt ${idx + 1} |`;
+            });
+            markdown += `\n`;
+            
+            // 分析分隔线
+            markdown += `|----------|`;
+            group.forEach(() => {
+                markdown += `----------|`;
+            });
+            markdown += `\n`;
+            
+            // 分析内容行
+            markdown += generateAnalysisMarkdownRows(group, analysisFields);
+            markdown += `\n`;
+        }
+        
         markdown += `\n`;
     });
 
@@ -455,10 +612,15 @@ function main() {
     const prompts = loadPromptData(inputFile);
     console.log(`📊 Loaded ${prompts.length} prompts from ${inputFile}`);
     
-    // 检测翻译状态
+    // 检测翻译和分析状态
     const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    const hasAnalysis = prompts.some(p => p.analysis);
+    
     if (hasTranslation) {
         console.log('🌐 Translation fields detected');
+    }
+    if (hasAnalysis) {
+        console.log('🧠 AI Analysis fields detected');
     }
     
     // 生成HTML文件
@@ -481,6 +643,7 @@ function main() {
     console.log(`   • Tables generated: ${tableCount}`);
     console.log(`   • Prompts per table: 4`);
     console.log(`   • Translation support: ${hasTranslation ? 'Yes' : 'No'}`);
+    console.log(`   • AI Analysis support: ${hasAnalysis ? 'Yes (12 elements)' : 'No'}`);
     console.log(`   • Output formats: HTML + Markdown`);
     
     console.log('\n🎉 Table generation completed successfully!');
