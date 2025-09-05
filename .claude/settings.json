@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '📚 Loading project brainstorm content using repomix...' && npx repomix .brainstorm --stdout"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '💡 Reminder: Write brainstorm and documentation files to .brainstorm/ directory for better organization'"
+          }
+        ]
+      }
+    ]
+  }
+}
