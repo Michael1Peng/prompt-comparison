@@ -17,7 +17,7 @@ The project is configured with the following hooks in `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "echo '📚 Loading project brainstorm content using repomix...' && npx repomix .brainstorm --stdout"
+            "command": "echo '📚 Loading project brainstorm content using repomix...' && npx repomix .brainstorm -o brainstorm.xml"
           }
         ]
       }
@@ -57,6 +57,11 @@ The SessionStart hook uses repomix to:
 - Changes take effect on next session restart
 
 ## Original Requirements
+
 I'm brainstorming about this new prompt comparison product.
 Every time we start the conversation session, read all the files in @.brainstorm/.
 Every time you need to write files, write to @.brainstorm/.
+
+## Brainstorm Context 
+
+@brainstorm.xml

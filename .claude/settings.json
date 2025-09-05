@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '📚 Loading project brainstorm content using repomix...' && npx repomix .brainstorm --stdout"
+            "command": "echo '📚 Loading project brainstorm content using repomix...' && npx repomix .brainstorm -o brainstorm.xml"
           }
         ]
       }
