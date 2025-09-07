@@ -6,7 +6,9 @@
       "Bash(do mv \"$file\" \"$file#线框图设计_\")",
       "Bash(done)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "WebSearch",
+      "WebFetch(domain:help.aliyun.com)"
     ],
     "deny": [],
     "ask": []
