@@ -13,5 +13,9 @@
     "deny": [],
     "ask": []
   },
-  "outputStyle": "Explanatory"
+  "enabledMcpjsonServers": [
+    "chrome-mcp-server"
+  ],
+  "outputStyle": "Explanatory",
+  "enableAllProjectMcpServers": true
 }
