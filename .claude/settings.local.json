@@ -6,10 +6,16 @@
       "Bash(do mv \"$file\" \"$file#线框图设计_\")",
       "Bash(done)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "WebSearch",
+      "WebFetch(domain:help.aliyun.com)"
     ],
     "deny": [],
     "ask": []
   },
-  "outputStyle": "Explanatory"
+  "enabledMcpjsonServers": [
+    "chrome-mcp-server"
+  ],
+  "outputStyle": "Explanatory",
+  "enableAllProjectMcpServers": true
 }
