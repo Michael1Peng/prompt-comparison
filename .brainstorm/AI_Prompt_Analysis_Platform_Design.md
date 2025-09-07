@@ -4,23 +4,6 @@
 
 本文档描述了一个用于分析和对比AI编程、Coding agents相关优秀提示词设计的产品架构方案。该平台能够快速分析提示词框架，并支持跨仓库的提示词选择与对比功能。
 
-## 🎯 产品核心功能
-
-### 1. 提示词智能采集
-- **多源数据抓取**: GitHub、GitLab、Hugging Face等平台的仓库扫描
-- **智能识别**: 自动识别系统提示词、用户指令模板、工具集成代码
-- **实时更新**: 监控目标仓库变更，自动同步最新提示词
-
-### 2. 提示词框架分析
-- **结构解析**: 自动识别角色定义、任务描述、约束条件、输出格式
-- **模式识别**: Chain-of-Thought、Few-shot、ReAct、函数调用等模式
-- **复杂度评估**: 提示词长度、嵌套层级、参数复杂度分析
-
-### 3. 横向对比平台
-- **多维度对比**: 功能、性能、适用场景、代码质量
-- **可视化展示**: 并排对比、差异高亮、结构化展示
-- **评分体系**: 可读性、可维护性、效果预期评分
-
 ## 🏗️ 技术架构设计
 
 ### 前端层 (React/Vue + TypeScript)
@@ -75,34 +58,6 @@ def analyze_prompt_structure(prompt_text):
 - **ReAct**: 检测观察-思考-行动循环模式
 - **Function Calling**: 识别工具定义和调用语法
 
-## 📊 多仓库对比分析功能
-
-### 智能筛选系统
-- **功能分类**: 代码生成、调试、重构、测试、文档等
-- **技术栈过滤**: Python、JavaScript、Rust、Go等语言
-- **复杂度筛选**: 简单、中等、复杂三个层级
-- **效果评估**: 社区反馈、star数量、使用频率
-
-### 对比维度框架
-```typescript
-interface ComparisonDimensions {
-  structure: {
-    clarity: number;        // 结构清晰度 
-    modularity: number;     // 模块化程度
-    reusability: number;    // 复用性
-  },
-  performance: {
-    token_efficiency: number;  // Token使用效率
-    response_quality: number;  // 响应质量
-    latency_impact: number;    // 延迟影响
-  },
-  maintainability: {
-    readability: number;    // 可读性
-    extensibility: number;  // 可扩展性  
-    documentation: number;  // 文档完整性
-  }
-}
-```
 
 ## 🛠️ 技术实现架构
 
@@ -140,18 +95,6 @@ interface ComparisonDimensions {
 3. **Phase 3**: 对比功能 + 可视化展示 (4周)
 4. **Phase 4**: 高级分析 + 报告导出 (4周)
 
-## 💡 产品商业价值
-
-### 目标用户群体
-- **AI产品团队**: 快速学习最佳实践，优化产品提示词设计
-- **开发者社区**: 对比不同方案，选择最适合的提示词模板  
-- **研究机构**: 分析提示词工程发展趋势和模式演进
-
-### 核心竞争优势
-1. **自动化程度高**: 无需人工整理，智能识别和分析
-2. **分析维度全面**: 从结构到性能到可维护性全覆盖
-3. **实时更新**: 跟踪最新的提示词设计趋势
-4. **可视化直观**: 复杂的对比分析以图表形式展现
 
 ## 📋 实施计划
 
