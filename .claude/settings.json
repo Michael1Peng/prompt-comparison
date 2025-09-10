@@ -6,6 +6,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "echo '📚 Loading project brainstorm content using repomix...' && npx repomix .brainstorm --quiet -o brainstorm.xml"
+          },
+          {
+            "type": "command",
             "command": "echo '📚 Loading project history content using repomix...' && npx repomix .history --quiet -o history.xml"
           }
         ]
