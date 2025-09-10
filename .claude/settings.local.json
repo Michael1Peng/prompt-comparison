@@ -1,14 +1,22 @@
 {
   "permissions": {
     "allow": [
+      "Bash(tree:*)",
+      "Bash(for:*)",
+      "Bash(do mv \"$file\" \"$file#线框图设计_\")",
+      "Bash(done)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
       "WebSearch",
-      "WebFetch(domain:help.aliyun.com)"
+      "WebFetch(domain:help.aliyun.com)",
+      "Bash(git commit:*)"
     ],
-    "defaultMode": "bypassPermissions",
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "chrome-mcp-server"
-  ]
+  ],
+  "outputStyle": "Explanatory"
 }
