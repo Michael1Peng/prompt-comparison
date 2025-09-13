@@ -1,0 +1,1158 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+analyze-prompt.js
+generate-tables.js
+history-prompts.md
+translate-prompts.js
+translate.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="history-prompts.md">
+使用 gh 命令新建一个 roo code 仓库，然后把 https://github.com/RooCodeInc/Roo-Code 设为 upstream
+
+---
+
+所有分析找到的这些提测相关的文件路径入境汇总输出到一个文件`prompt-related-path.md` 里面。
+接下来根据这个 `prompt-related-path.md` 文件里面记录的所有包含了提示词的文件，把这些提示词按照固定的格式输出到一个新的JSON文件`prompt-collection.json` 文件里面去。
+这个JSON是一个array，然后每一个item应该包括 `name`，就是这个提示词的命名，`description`，这个提示词的简介和`original_prompt`，就是这个提示词的完整原文。
+
+不要等你把所有的提示词都收集完一次性输出，而是每找到一个提示词就输出一个提示词，分步骤地把所有的文件都处理完。
+
+---
+
+帮我创建一个JS脚本能够自动的把这个 `prompt-collection.json` 的内容输出成多个table，
+这些table的行分别是分别是`name`、`description`和`original_prompt`。
+然后每个table一共包括四个提示词。
+
+---
+
+首先帮我逐个修改 JSON 里面的 item，逐个地去翻译 original props，新增一个 `translated prompt ，把对应的提示词翻译成中文。
+然后修改 `generated-tables.js` 文件，然后去把这个新增的 translated prompt 给添加到输出的 table 里。
+
+## 分析
+
+新增一个 JS 脚本，来处理 `prompt-collection.json` 文件。从 prompt engineer 的角度分析，把当前列表里面每个 item 的提示词预设拆分这些元素,作为新的字段添加到当前的 JSON item 里。：
+所在文件 | 角色/能力 | 任务/请求 | 背景/情境 | 指令/行动 | 输出规格 | 示例 | 限制/约束 | 目标/期望 | 信息 | 评估/优化 | 调整 | 受众
+
+注意，只做原内容的拆分，不要添加任何新的内容。
+以下格式输出到文件，没有相关内容的 cell 置空，`original content` 保持 prompt 预设完整的内容:
+</file>
+
+<file path="translate-prompts.js">
+#!/usr/bin/env node
+
+const fs = require('fs');
+const QianwenTranslator = require('./translate.js');
+
+async function translateItem(translator, item) {
+    const result = { ...item };
+    const tasks = [];
+    
+    if (item.original_prompt) {
+        tasks.push(
+            translator.translate(item.original_prompt, 'Chinese')
+                .then(text => result.translated_prompt = text)
+        );
+    }
+    
+    if (item.description) {
+        tasks.push(
+            translator.translate(item.description, 'Chinese')
+                .then(text => result.translated_description = text)
+        );
+    }
+    
+    await Promise.all(tasks);
+    return result;
+}
+
+async function concurrentMap(items, fn, concurrency = 5) {
+    const results = [];
+    for (let i = 0; i < items.length; i += concurrency) {
+        const batch = items.slice(i, i + concurrency);
+        const batchResults = await Promise.all(batch.map(fn));
+        results.push(...batchResults);
+    }
+    return results;
+}
+
+async function main() {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    const inputFile = process.argv[2];
+    const outputFile = process.argv[3];
+
+    if (!apiKey) process.exit(1);
+    if (!inputFile) process.exit(1);
+
+    const data = JSON.parse(fs.readFileSync(inputFile, 'utf8'));
+    const translator = new QianwenTranslator(apiKey);
+    
+    console.log(`并发翻译 ${data.length} 个项目...`);
+    const results = await concurrentMap(data, item => translateItem(translator, item));
+    
+    const output = outputFile || inputFile.replace('.json', '-translated.json');
+    fs.writeFileSync(output, JSON.stringify(results, null, 2));
+    console.log(`完成: ${output}`);
+}
+
+if (require.main === module) main();
+</file>
+
+<file path="translate.js">
+#!/usr/bin/env node
+
+const https = require('https');
+
+class QianwenTranslator {
+    constructor(apiKey) {
+        this.apiKey = apiKey;
+        this.baseUrl = 'dashscope.aliyuncs.com';
+        this.endpoint = '/compatible-mode/v1/chat/completions';
+    }
+
+    async translate(text, targetLang = 'English') {
+        const data = JSON.stringify({
+            model: 'qwen-coder-plus',
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are a professional translator. Translate the following text to ${targetLang}. Only return the translated text, no explanations.`
+                },
+                {
+                    role: 'user',
+                    content: text
+                }
+            ],
+            temperature: 0.7
+        });
+
+        const options = {
+            hostname: this.baseUrl,
+            port: 443,
+            path: this.endpoint,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Length': Buffer.byteLength(data)
+            }
+        };
+
+        return new Promise((resolve, reject) => {
+            const req = https.request(options, (res) => {
+                let responseData = '';
+
+                res.on('data', (chunk) => {
+                    responseData += chunk;
+                });
+
+                res.on('end', () => {
+                    try {
+                        const result = JSON.parse(responseData);
+                        if (result.choices && result.choices[0] && result.choices[0].message) {
+                            resolve(result.choices[0].message.content.trim());
+                        } else {
+                            reject(new Error('Invalid response format'));
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                reject(error);
+            });
+
+            req.write(data);
+            req.end();
+        });
+    }
+}
+
+async function main() {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    
+    if (!apiKey) {
+        console.error('请设置环境变量 DASHSCOPE_API_KEY');
+        process.exit(1);
+    }
+
+    const translator = new QianwenTranslator(apiKey);
+    
+    const textToTranslate = process.argv[2];
+    const targetLanguage = process.argv[3] || 'English';
+
+    if (!textToTranslate) {
+        console.error('使用方法: node translate.js "要翻译的文本" [目标语言]');
+        console.error('例如: node translate.js "你好世界" "English"');
+        process.exit(1);
+    }
+
+    try {
+        console.log('翻译中...');
+        const result = await translator.translate(textToTranslate, targetLanguage);
+        console.log('翻译结果:', result);
+    } catch (error) {
+        console.error('翻译失败:', error.message);
+    }
+}
+
+if (require.main === module) {
+    main();
+}
+
+module.exports = QianwenTranslator;
+</file>
+
+<file path="analyze-prompt.js">
+#!/usr/bin/env node
+const fs = require('fs');
+const https = require('https');
+
+class QianwenAnalyzer {
+    constructor(apiKey) {
+        this.apiKey = apiKey;
+        this.baseUrl = 'dashscope.aliyuncs.com';
+        this.endpoint = '/compatible-mode/v1/chat/completions';
+    }
+
+    async analyzePrompt(promptText) {
+        const analysisPrompt = `你是一位专业的提示词工程师，请从prompt engineer的角度分析以下提示词，将其拆分为不同的元素。
+
+请将以下提示词内容按照这些元素进行分类：
+- 角色能力：定义AI助手的身份、角色或专业能力（string类型）
+- 任务请求：明确要完成的具体任务或请求（string类型）
+- 背景情境：提供相关背景信息或使用场景（string类型）
+- 指令行动：具体的操作步骤、方法或指导原则（string类型）
+- 输出规格：对输出格式、结构或风格的要求（string类型）
+- 示例：提供的例子、样例或演示（string类型）
+- 限制约束：禁止做的事情、限制条件或约束规则（string类型）
+- 目标期望：期望达到的效果或目标（string类型）
+- 信息：提供的背景信息、数据或知识（string类型）
+- 评估优化：关于评估标准、优化方向的内容（string类型）
+- 调整：可以调整、定制或配置的内容（string类型）
+- 受众：目标用户、读者或使用对象（string类型）
+
+要求：
+1. 只对原内容进行分类拆分，不要添加任何新内容
+2. 每个分类下列出属于该分类的原文内容
+3. 如果某个分类没有对应内容，则设为空字符串
+4. 保持原文的完整性，确保所有内容都被分配到某个分类中
+5. 必须返回标准JSON格式
+
+待分析的提示词：
+${promptText}
+
+请按照以下JSON格式返回结果：
+{
+  "角色能力": "",
+  "任务请求": "",
+  "背景情境": "",
+  "指令行动": "",
+  "输出规格": "",
+  "示例": "",
+  "限制约束": "",
+  "目标期望": "",
+  "信息": "",
+  "评估优化": "",
+  "调整": "",
+  "受众": ""
+}`;
+
+        const data = JSON.stringify({
+            model: 'qwen-plus',
+            messages: [
+                {
+                    role: 'user',
+                    content: analysisPrompt
+                }
+            ],
+            temperature: 0.3,
+            response_format: { type: "json_object" }
+        });
+
+        const options = {
+            hostname: this.baseUrl,
+            port: 443,
+            path: this.endpoint,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Length': Buffer.byteLength(data)
+            }
+        };
+
+        return new Promise((resolve, reject) => {
+            const req = https.request(options, (res) => {
+                let responseData = '';
+
+                res.on('data', (chunk) => {
+                    responseData += chunk;
+                });
+
+                res.on('end', () => {
+                    try {
+                        const result = JSON.parse(responseData);
+                        if (result.choices && result.choices[0] && result.choices[0].message) {
+                            const content = result.choices[0].message.content.trim();
+                            // 直接解析JSON内容（使用结构化输出确保格式正确）
+                            try {
+                                const parsedResult = JSON.parse(content);
+                                resolve(parsedResult);
+                            } catch (parseError) {
+                                // 如果直接解析失败，尝试提取JSON部分（兼容旧版本）
+                                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                                if (jsonMatch) {
+                                    const parsedResult = JSON.parse(jsonMatch[0]);
+                                    resolve(parsedResult);
+                                } else {
+                                    reject(new Error(`JSON解析失败: ${parseError.message}, 原始内容: ${content}`));
+                                }
+                            }
+                        } else {
+                            reject(new Error('API响应格式无效'));
+                        }
+                    } catch (error) {
+                        reject(new Error('解析API响应失败: ' + error.message));
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                reject(error);
+            });
+
+            req.write(data);
+            req.end();
+        });
+    }
+}
+
+async function analyzeItem(analyzer, item, index, total, retries = 2) {
+    try {
+        console.log(`[${index + 1}/${total}] 分析: ${item.name}`);
+        
+        const analyzedElements = await analyzer.analyzePrompt(item.original_prompt);
+        
+        // 验证返回的JSON结构
+        const requiredFields = ['角色能力', '任务请求', '背景情境', '指令行动', '输出规格', '示例', '限制约束', '目标期望', '信息', '评估优化', '调整', '受众'];
+        const missingFields = requiredFields.filter(field => !(field in analyzedElements));
+        
+        if (missingFields.length > 0) {
+            console.warn(`⚠️ [${index + 1}/${total}] 缺少字段: ${missingFields.join(', ')} - ${item.name}`);
+        }
+        
+        // 为item添加analysis字段
+        item.analysis = {
+            角色能力: analyzedElements.角色能力 || '',
+            任务请求: analyzedElements.任务请求 || '',
+            背景情境: analyzedElements.背景情境 || '',
+            指令行动: analyzedElements.指令行动 || '',
+            输出规格: analyzedElements.输出规格 || '',
+            示例: analyzedElements.示例 || '',
+            限制约束: analyzedElements.限制约束 || '',
+            目标期望: analyzedElements.目标期望 || '',
+            信息: analyzedElements.信息 || '',
+            评估优化: analyzedElements.评估优化 || '',
+            调整: analyzedElements.调整 || '',
+            受众: analyzedElements.受众 || ''
+        };
+        
+        console.log(`✅ [${index + 1}/${total}] 完成: ${item.name}`);
+        return item;
+        
+    } catch (error) {
+        if (retries > 0) {
+            console.warn(`⚠️ [${index + 1}/${total}] 重试: ${item.name} - ${error.message} (剩余重试次数: ${retries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return analyzeItem(analyzer, item, index, total, retries - 1);
+        }
+        
+        console.error(`❌ [${index + 1}/${total}] 失败: ${item.name} - ${error.message}`);
+        // 分析失败时，添加空的analysis字段
+        item.analysis = {
+            角色能力: '', 任务请求: '', 背景情境: '', 指令行动: '',
+            输出规格: '', 示例: '', 限制约束: '', 目标期望: '',
+            信息: '', 评估优化: '', 调整: '', 受众: ''
+        };
+        return item;
+    }
+}
+
+async function concurrentAnalyze(analyzer, items, concurrency = 3) {
+    const results = [];
+    const total = items.length;
+    
+    for (let i = 0; i < items.length; i += concurrency) {
+        const batch = items.slice(i, i + concurrency);
+        const batchPromises = batch.map((item, batchIndex) => 
+            analyzeItem(analyzer, item, i + batchIndex, total)
+        );
+        
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+        
+        // 每个batch完成后稍作延迟，避免API限流
+        if (i + concurrency < items.length) {
+            console.log(`已完成 ${Math.min(i + concurrency, items.length)}/${items.length} 项，等待1秒后继续下一批...\n`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+    }
+    
+    return results;
+}
+
+async function main() {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    const inputFile = './prompt-collection.json';
+    
+    if (!apiKey) {
+        console.error('请设置环境变量 DASHSCOPE_API_KEY');
+        process.exit(1);
+    }
+
+    try {
+        const data = fs.readFileSync(inputFile, 'utf8');
+        const prompts = JSON.parse(data);
+        
+        console.log(`开始并发分析 ${prompts.length} 个提示词项目...\n`);
+        
+        const analyzer = new QianwenAnalyzer(apiKey);
+        
+        // 并发分析所有items
+        const analyzedPrompts = await concurrentAnalyze(analyzer, prompts);
+        
+        // 直接更新原文件
+        fs.writeFileSync(inputFile, JSON.stringify(analyzedPrompts, null, 2), 'utf8');
+        
+        console.log(`\n🎉 全部完成！已更新原文件: ${inputFile}`);
+        console.log(`成功分析了 ${analyzedPrompts.length} 个项目`);
+        
+        // 统计分析结果
+        const successCount = analyzedPrompts.filter(item => 
+            item.analysis && Object.values(item.analysis).some(v => v.trim().length > 0)
+        ).length;
+        
+        console.log(`成功率: ${successCount}/${analyzedPrompts.length} (${(successCount/analyzedPrompts.length*100).toFixed(1)}%)`);
+        
+    } catch (error) {
+        console.error('分析过程失败:', error.message);
+        process.exit(1);
+    }
+}
+
+if (require.main === module) {
+  main();
+}
+</file>
+
+<file path="generate-tables.js">
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+
+// 读取 JSON 文件
+function loadPromptData(filePath = 'prompt-collection.json') {
+    try {
+        const dataPath = path.join(__dirname, filePath);
+        const rawData = fs.readFileSync(dataPath, 'utf8');
+        return JSON.parse(rawData);
+    } catch (error) {
+        console.error(`Error reading ${filePath}:`, error.message);
+        process.exit(1);
+    }
+}
+
+// 转义HTML特殊字符
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// 截取文本到指定长度
+function truncateText(text, maxLength = 500) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
+// 生成分析字段的HTML行
+function generateAnalysisRows(prompts) {
+    if (!prompts[0].analysis) return '';
+    
+    const analysisFields = [
+        { key: '角色能力', label: '角色/能力', class: 'analysis-role-row' },
+        { key: '任务请求', label: '任务/请求', class: 'analysis-task-row' },
+        { key: '背景情境', label: '背景/情境', class: 'analysis-context-row' },
+        { key: '指令行动', label: '指令/行动', class: 'analysis-instruction-row' },
+        { key: '输出规格', label: '输出规格', class: 'analysis-output-row' },
+        { key: '示例', label: '示例', class: 'analysis-example-row' },
+        { key: '限制约束', label: '限制/约束', class: 'analysis-constraint-row' },
+        { key: '目标期望', label: '目标/期望', class: 'analysis-goal-row' },
+        { key: '信息', label: '信息', class: 'analysis-info-row' },
+        { key: '评估优化', label: '评估/优化', class: 'analysis-eval-row' },
+        { key: '调整', label: '调整', class: 'analysis-adjust-row' },
+        { key: '受众', label: '受众', class: 'analysis-audience-row' }
+    ];
+
+    return analysisFields.map(field => `
+        <tr class="${field.class}">
+            <td class="field-label"><strong>${field.label}</strong></td>
+            ${prompts.map(prompt => `
+                <td class="analysis-cell">
+                    ${prompt.analysis && prompt.analysis[field.key] ? 
+                        `<div class="analysis-content">${escapeHtml(prompt.analysis[field.key])}</div>` : 
+                        '<div class="analysis-empty">-</div>'
+                    }
+                </td>
+            `).join('')}
+        </tr>
+    `).join('');
+}
+
+// 生成单个表格的HTML（行列翻转版本）
+function generateTable(prompts, tableIndex, hasTranslation = false, hasAnalysis = false) {
+    const translationRows = hasTranslation ? `
+        <tr class="translation-desc-row">
+            <td class="field-label"><strong>中文描述</strong></td>
+            ${prompts.map(prompt => `
+                <td class="description-cell">
+                    ${escapeHtml(prompt.translated_description || '未翻译')}
+                </td>
+            `).join('')}
+        </tr>
+        <tr class="translation-content-row">
+            <td class="field-label"><strong>中文内容</strong></td>
+            ${prompts.map(prompt => `
+                <td class="content-cell">
+                    <pre><code>${escapeHtml(prompt.translated_prompt || '未翻译')}</code></pre>
+                </td>
+            `).join('')}
+        </tr>
+    ` : '';
+
+    const analysisRows = hasAnalysis ? `
+        <tr class="analysis-header-row">
+            <td class="field-label analysis-header"><strong>🔍 提示词元素分析</strong></td>
+            ${prompts.map(() => `<td class="analysis-header-cell"><strong>AI 智能分析结果</strong></td>`).join('')}
+        </tr>
+        ${generateAnalysisRows(prompts)}
+    ` : '';
+
+    const tableHtml = `
+    <div class="table-container">
+        <h2>Prompt Collection Table ${tableIndex}</h2>
+        <div class="table-wrapper">
+            <table class="prompt-table">
+                <thead>
+                    <tr>
+                        <th class="field-header">Field</th>
+                        ${prompts.map((prompt, index) => `
+                            <th class="prompt-header">Prompt ${index + 1}</th>
+                        `).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="name-row">
+                        <td class="field-label"><strong>Name</strong></td>
+                        ${prompts.map(prompt => `
+                            <td class="name-cell">
+                                <strong>${escapeHtml(prompt.name)}</strong>
+                            </td>
+                        `).join('')}
+                    </tr>
+                    <tr class="description-row">
+                        <td class="field-label"><strong>Description</strong></td>
+                        ${prompts.map(prompt => `
+                            <td class="description-cell">
+                                ${escapeHtml(prompt.description)}
+                            </td>
+                        `).join('')}
+                    </tr>
+                    <tr class="content-row">
+                        <td class="field-label"><strong>Original Content</strong></td>
+                        ${prompts.map(prompt => `
+                            <td class="content-cell">
+                                <pre><code>${escapeHtml(prompt.original_prompt)}</code></pre>
+                            </td>
+                        `).join('')}
+                    </tr>
+                    ${translationRows}
+                    ${analysisRows}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    `;
+    return tableHtml;
+}
+
+// 生成完整的HTML文档
+function generateHtmlDocument(prompts) {
+    // 检测是否有翻译字段和分析字段
+    const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    const hasAnalysis = prompts.some(p => p.analysis);
+    
+    // 将提示词按每4个分组
+    const promptGroups = [];
+    for (let i = 0; i < prompts.length; i += 4) {
+        promptGroups.push(prompts.slice(i, i + 4));
+    }
+
+    const css = `
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                line-height: 1.6;
+                margin: 0;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }
+            
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            
+            h1 {
+                color: #333;
+                text-align: center;
+                margin-bottom: 30px;
+                font-size: 2.5em;
+            }
+            
+            .table-container {
+                margin-bottom: 50px;
+                page-break-inside: avoid;
+            }
+            
+            h2 {
+                color: #444;
+                border-bottom: 3px solid #007acc;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .table-wrapper {
+                overflow-x: auto;
+                margin-bottom: 20px;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+            }
+            
+            .prompt-table {
+                width: 100%;
+                min-width: 800px;
+                border-collapse: collapse;
+                background: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+            
+            .prompt-table th {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 12px;
+                text-align: center;
+                font-weight: 600;
+                border: none;
+            }
+            
+            .field-header {
+                background: linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%) !important;
+                text-align: left !important;
+                width: 150px;
+            }
+            
+            .prompt-header {
+                min-width: 200px;
+                max-width: 300px;
+            }
+            
+            .prompt-table td {
+                padding: 15px 12px;
+                border-bottom: 1px solid #eee;
+                border-right: 1px solid #eee;
+                vertical-align: top;
+            }
+            
+            .prompt-table tr:hover {
+                background-color: #f8f9fa;
+            }
+            
+            .field-label {
+                background: #f1f3f4;
+                font-weight: 600;
+                color: #2c5aa0;
+                text-align: left;
+                width: 150px;
+                position: sticky;
+                left: 0;
+                z-index: 1;
+            }
+            
+            .name-cell {
+                font-weight: 600;
+                color: #2c5aa0;
+                max-width: 250px;
+                word-wrap: break-word;
+            }
+            
+            .description-cell {
+                color: #555;
+                max-width: 300px;
+                word-wrap: break-word;
+                line-height: 1.4;
+            }
+            
+            .content-cell {
+                max-width: 400px;
+                max-height: 300px;
+                overflow-y: auto;
+                overflow-x: auto;
+            }
+            
+            .name-row {
+                background: #f8fffe;
+            }
+            
+            .description-row {
+                background: #f8f9fa;
+            }
+            
+            .content-row {
+                background: #fafbfc;
+            }
+            
+            .translation-desc-row {
+                background: #f0f8ff;
+            }
+            
+            .translation-content-row {
+                background: #f5f5ff;
+            }
+            
+            .analysis-header-row {
+                background: #e8f5e8;
+                border-top: 2px solid #28a745;
+            }
+            
+            .analysis-header {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+                color: white !important;
+            }
+            
+            .analysis-header-cell {
+                background: #d1ecf1;
+                color: #0c5460;
+                font-size: 14px;
+                text-align: center;
+            }
+            
+            .analysis-cell {
+                max-width: 300px;
+                word-wrap: break-word;
+                font-size: 13px;
+                line-height: 1.4;
+                background: #f8f9fa;
+            }
+            
+            .analysis-content {
+                color: #495057;
+                padding: 8px;
+                border-radius: 4px;
+                background: white;
+                border-left: 3px solid #28a745;
+                margin: 2px 0;
+            }
+            
+            .analysis-empty {
+                color: #adb5bd;
+                text-align: center;
+                font-style: italic;
+                padding: 8px;
+            }
+            
+            .analysis-role-row { background: #fff3cd; }
+            .analysis-task-row { background: #d1ecf1; }
+            .analysis-context-row { background: #d4edda; }
+            .analysis-instruction-row { background: #e2e3e5; }
+            .analysis-output-row { background: #f8d7da; }
+            .analysis-example-row { background: #e7f3ff; }
+            .analysis-constraint-row { background: #f2dede; }
+            .analysis-goal-row { background: #dff0d8; }
+            .analysis-info-row { background: #f0f8ff; }
+            .analysis-eval-row { background: #fdf2e9; }
+            .analysis-adjust-row { background: #f3e2f3; }
+            .analysis-audience-row { background: #e6f3ff; }
+            
+            details {
+                cursor: pointer;
+            }
+            
+            summary {
+                background: #f8f9fa;
+                padding: 8px 12px;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                font-weight: 500;
+                color: #495057;
+                user-select: none;
+            }
+            
+            summary:hover {
+                background: #e9ecef;
+            }
+            
+            pre {
+                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 4px;
+                padding: 10px;
+                overflow: auto;
+                margin: 0;
+                font-size: 12px;
+                line-height: 1.3;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                max-height: 280px;
+            }
+            
+            code {
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+                color: #333;
+            }
+            
+            .stats {
+                background: #e3f2fd;
+                padding: 15px;
+                border-radius: 6px;
+                margin-bottom: 30px;
+                text-align: center;
+                color: #1565c0;
+                font-weight: 500;
+            }
+            
+            @media (max-width: 768px) {
+                .container {
+                    padding: 15px;
+                }
+                
+                .prompt-table {
+                    font-size: 14px;
+                }
+                
+                .name-cell, .description-cell, .content-cell {
+                    width: auto;
+                }
+            }
+            
+            @media print {
+                body {
+                    background: white;
+                }
+                
+                .container {
+                    box-shadow: none;
+                    padding: 0;
+                }
+                
+                .table-container {
+                    page-break-before: always;
+                }
+                
+                .table-container:first-child {
+                    page-break-before: avoid;
+                }
+            }
+        </style>
+    `;
+
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Prompt Collection Analysis Tables</title>
+        ${css}
+    </head>
+    <body>
+        <div class="container">
+            <h1>🤖 Prompt Collection Analysis</h1>
+            <div class="stats">
+                📊 Total Prompts: ${prompts.length} | 📋 Tables: ${promptGroups.length} | 🔍 Source: RooCodeInc/roo-code
+                ${hasAnalysis ? ' | 🧠 AI Analysis: Enabled' : ''}
+                ${hasTranslation ? ' | 🌐 Translation: Available' : ''}
+            </div>
+            
+            ${promptGroups.map((group, index) => 
+                generateTable(group, index + 1, hasTranslation, hasAnalysis)
+            ).join('')}
+            
+            <footer style="text-align: center; margin-top: 40px; color: #666; font-size: 14px;">
+                <p>Generated on ${new Date().toLocaleDateString()} | Prompt Engineering Analysis</p>
+                ${hasAnalysis ? '<p>🤖 AI Analysis powered by Alibaba Cloud Qwen</p>' : ''}
+            </footer>
+        </div>
+    </body>
+    </html>
+    `;
+
+    return html;
+}
+
+// 生成分析字段的Markdown行
+function generateAnalysisMarkdownRows(group, analysisFields) {
+    return analysisFields.map(field => {
+        let row = `| **${field.label}** |`;
+        group.forEach(prompt => {
+            const content = prompt.analysis && prompt.analysis[field.key] ? 
+                prompt.analysis[field.key].replace(/\|/g, '\\|').replace(/\n/g, ' ').substring(0, 150) + '...' : 
+                '-';
+            row += ` ${content} |`;
+        });
+        return row;
+    }).join('\n');
+}
+
+// 生成Markdown格式的表格（行列翻转版本）
+function generateMarkdownTables(prompts) {
+    // 检测是否有翻译字段和分析字段
+    const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    const hasAnalysis = prompts.some(p => p.analysis);
+    
+    // 将提示词按每4个分组
+    const promptGroups = [];
+    for (let i = 0; i < prompts.length; i += 4) {
+        promptGroups.push(prompts.slice(i, i + 4));
+    }
+
+    let markdown = `# Prompt Collection Analysis\n\n`;
+    markdown += `**Total Prompts:** ${prompts.length} | **Tables:** ${promptGroups.length} | **Source:** RooCodeInc/roo-code\n\n`;
+    if (hasTranslation) {
+        markdown += `**🌐 Translation Available:** Chinese translations included\n\n`;
+    }
+    if (hasAnalysis) {
+        markdown += `**🧠 AI Analysis:** Prompt elements analyzed by Alibaba Cloud Qwen\n\n`;
+    }
+
+    promptGroups.forEach((group, index) => {
+        markdown += `## Table ${index + 1}\n\n`;
+        
+        // 创建表头
+        markdown += `| Field |`;
+        group.forEach((prompt, idx) => {
+            markdown += ` Prompt ${idx + 1} |`;
+        });
+        markdown += `\n`;
+        
+        // 创建分隔线
+        markdown += `|-------|`;
+        group.forEach(() => {
+            markdown += `----------|`;
+        });
+        markdown += `\n`;
+        
+        // Name行
+        markdown += `| **Name** |`;
+        group.forEach(prompt => {
+            const name = prompt.name.replace(/\|/g, '\\|');
+            markdown += ` **${name}** |`;
+        });
+        markdown += `\n`;
+        
+        // Description行
+        markdown += `| **Description** |`;
+        group.forEach(prompt => {
+            const description = prompt.description.replace(/\|/g, '\\|').substring(0, 100) + '...';
+            markdown += ` ${description} |`;
+        });
+        markdown += `\n`;
+        
+        // Original Content行
+        markdown += `| **Original Content** |`;
+        group.forEach(prompt => {
+            // 在Markdown中显示内容的前200个字符作为预览
+            const contentPreview = prompt.original_prompt.replace(/\|/g, '\\|').replace(/\n/g, ' ').substring(0, 200) + '...';
+            markdown += ` ${contentPreview} |`;
+        });
+        markdown += `\n`;
+        
+        // 翻译字段
+        if (hasTranslation) {
+            // 中文描述行
+            markdown += `| **中文描述** |`;
+            group.forEach(prompt => {
+                const description = (prompt.translated_description || '未翻译').replace(/\|/g, '\\|').substring(0, 100) + '...';
+                markdown += ` ${description} |`;
+            });
+            markdown += `\n`;
+            
+            // 中文内容行
+            markdown += `| **中文内容** |`;
+            group.forEach(prompt => {
+                const contentPreview = (prompt.translated_prompt || '未翻译').replace(/\|/g, '\\|').replace(/\n/g, ' ').substring(0, 200) + '...';
+                markdown += ` ${contentPreview} |`;
+            });
+            markdown += `\n`;
+        }
+        
+        // 分析字段
+        if (hasAnalysis) {
+            markdown += `\n### 🔍 AI分析结果\n\n`;
+            
+            const analysisFields = [
+                { key: '角色能力', label: '角色/能力' },
+                { key: '任务请求', label: '任务/请求' },
+                { key: '背景情境', label: '背景/情境' },
+                { key: '指令行动', label: '指令/行动' },
+                { key: '输出规格', label: '输出规格' },
+                { key: '示例', label: '示例' },
+                { key: '限制约束', label: '限制/约束' },
+                { key: '目标期望', label: '目标/期望' },
+                { key: '信息', label: '信息' },
+                { key: '评估优化', label: '评估/优化' },
+                { key: '调整', label: '调整' },
+                { key: '受众', label: '受众' }
+            ];
+            
+            // 分析表头
+            markdown += `| 分析元素 |`;
+            group.forEach((prompt, idx) => {
+                markdown += ` Prompt ${idx + 1} |`;
+            });
+            markdown += `\n`;
+            
+            // 分析分隔线
+            markdown += `|----------|`;
+            group.forEach(() => {
+                markdown += `----------|`;
+            });
+            markdown += `\n`;
+            
+            // 分析内容行
+            markdown += generateAnalysisMarkdownRows(group, analysisFields);
+            markdown += `\n`;
+        }
+        
+        markdown += `\n`;
+    });
+
+    return markdown;
+}
+
+// 主函数
+function main() {
+    console.log('🚀 Starting prompt table generation...');
+    
+    // 支持命令行参数指定输入文件
+    const inputFile = process.argv[2] || 'prompt-collection.json';
+    
+    const prompts = loadPromptData(inputFile);
+    console.log(`📊 Loaded ${prompts.length} prompts from ${inputFile}`);
+    
+    // 检测翻译和分析状态
+    const hasTranslation = prompts.some(p => p.translated_description || p.translated_prompt);
+    const hasAnalysis = prompts.some(p => p.analysis);
+    
+    if (hasTranslation) {
+        console.log('🌐 Translation fields detected');
+    }
+    if (hasAnalysis) {
+        console.log('🧠 AI Analysis fields detected');
+    }
+    
+    // 生成HTML文件
+    const htmlContent = generateHtmlDocument(prompts);
+    const htmlPath = path.join(__dirname, 'prompt-tables.html');
+    fs.writeFileSync(htmlPath, htmlContent, 'utf8');
+    console.log(`✅ Generated HTML tables: ${htmlPath}`);
+    
+    // 生成Markdown文件
+    const markdownContent = generateMarkdownTables(prompts);
+    const markdownPath = path.join(__dirname, 'prompt-tables.md');
+    fs.writeFileSync(markdownPath, markdownContent, 'utf8');
+    console.log(`✅ Generated Markdown tables: ${markdownPath}`);
+    
+    // 输出统计信息
+    const tableCount = Math.ceil(prompts.length / 4);
+    console.log(`\n📈 Summary:`);
+    console.log(`   • Input file: ${inputFile}`);
+    console.log(`   • Total prompts: ${prompts.length}`);
+    console.log(`   • Tables generated: ${tableCount}`);
+    console.log(`   • Prompts per table: 4`);
+    console.log(`   • Translation support: ${hasTranslation ? 'Yes' : 'No'}`);
+    console.log(`   • AI Analysis support: ${hasAnalysis ? 'Yes (12 elements)' : 'No'}`);
+    console.log(`   • Output formats: HTML + Markdown`);
+    
+    console.log('\n🎉 Table generation completed successfully!');
+}
+
+// 执行脚本
+if (require.main === module) {
+    main();
+}
+
+module.exports = {
+    loadPromptData,
+    generateHtmlDocument,
+    generateMarkdownTables
+};
+</file>
+
+</files>
