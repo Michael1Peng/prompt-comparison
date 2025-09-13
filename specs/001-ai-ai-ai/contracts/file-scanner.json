@@ -1,0 +1,504 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "文件扫描服务API契约",
+  "version": "1.0.0",
+  "description": "定义文件扫描服务的输入输出接口",
+  
+  "services": {
+    "FileScanner": {
+      "description": "递归扫描仓库文件并识别包含提示词的文件",
+      
+      "methods": {
+        "scanRepository": {
+          "description": "扫描指定目录中的所有文件",
+          "input": {
+            "type": "object",
+            "properties": {
+              "rootPath": {
+                "type": "string",
+                "description": "要扫描的根目录路径(绝对路径)"
+              },
+              "options": {
+                "$ref": "#/definitions/ScanOptions"
+              }
+            },
+            "required": ["rootPath"]
+          },
+          "output": {
+            "$ref": "#/definitions/ScanResult"
+          },
+          "errors": [
+            {
+              "code": "INVALID_PATH",
+              "message": "提供的路径不存在或无法访问"
+            },
+            {
+              "code": "PERMISSION_DENIED",
+              "message": "没有权限访问指定路径"
+            },
+            {
+              "code": "SCAN_TIMEOUT",
+              "message": "扫描操作超时"
+            }
+          ]
+        },
+        
+        "identifyPromptFiles": {
+          "description": "使用AI智能识别包含提示词的文件",
+          "input": {
+            "type": "object",
+            "properties": {
+              "files": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/FileItem"
+                },
+                "description": "要分析的文件列表"
+              },
+              "options": {
+                "$ref": "#/definitions/IdentificationOptions"
+              }
+            },
+            "required": ["files"]
+          },
+          "output": {
+            "$ref": "#/definitions/IdentificationResult"
+          },
+          "errors": [
+            {
+              "code": "AI_API_ERROR",
+              "message": "AI API调用失败"
+            },
+            {
+              "code": "FILE_READ_ERROR",
+              "message": "无法读取文件内容"
+            },
+            {
+              "code": "BATCH_PROCESSING_ERROR",
+              "message": "批处理过程中发生错误"
+            }
+          ]
+        },
+        
+        "extractPromptContent": {
+          "description": "从识别的文件中提取具体的提示词内容",
+          "input": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "$ref": "#/definitions/FileItem"
+              },
+              "options": {
+                "$ref": "#/definitions/ExtractionOptions"
+              }
+            },
+            "required": ["file"]
+          },
+          "output": {
+            "$ref": "#/definitions/ExtractionResult"
+          },
+          "errors": [
+            {
+              "code": "EXTRACTION_FAILED",
+              "message": "提示词提取失败"
+            },
+            {
+              "code": "CONTENT_TOO_LARGE",
+              "message": "文件内容过大无法处理"
+            }
+          ]
+        }
+      }
+    }
+  },
+  
+  "definitions": {
+    "ScanOptions": {
+      "type": "object",
+      "properties": {
+        "extensions": {
+          "type": "array",
+          "items": {"type": "string"},
+          "default": [".js", ".ts", ".py", ".md", ".txt", ".json", ".yaml", ".yml"],
+          "description": "要扫描的文件扩展名列表"
+        },
+        "ignorePatterns": {
+          "type": "array", 
+          "items": {"type": "string"},
+          "default": ["node_modules/**", ".git/**", "__pycache__/**", "dist/**", "build/**"],
+          "description": "要忽略的文件/目录模式"
+        },
+        "maxFileSize": {
+          "type": "integer",
+          "default": 5242880,
+          "description": "最大文件大小(字节)，默认5MB"
+        },
+        "followSymlinks": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否跟随符号链接"
+        },
+        "respectGitignore": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否遵循.gitignore规则"
+        },
+        "concurrency": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "并发扫描文件数"
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 300000,
+          "description": "扫描超时时间(毫秒)"
+        }
+      }
+    },
+    
+    "FileItem": {
+      "type": "object",
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "description": "文件的绝对路径"
+        },
+        "relativePath": {
+          "type": "string", 
+          "description": "相对于根目录的路径"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "文件名(含扩展名)"
+        },
+        "extension": {
+          "type": "string",
+          "description": "文件扩展名"
+        },
+        "size": {
+          "type": "integer",
+          "description": "文件大小(字节)"
+        },
+        "modifiedTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "文件修改时间"
+        },
+        "content": {
+          "type": "string",
+          "description": "文件内容(如果已读取)"
+        },
+        "encoding": {
+          "type": "string",
+          "default": "utf-8",
+          "description": "文件编码"
+        },
+        "contentHash": {
+          "type": "string",
+          "description": "内容MD5哈希"
+        }
+      },
+      "required": ["filePath", "fileName", "extension", "size"]
+    },
+    
+    "ScanResult": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "description": "扫描会话ID"
+        },
+        "startTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "扫描开始时间"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time", 
+          "description": "扫描结束时间"
+        },
+        "duration": {
+          "type": "integer",
+          "description": "扫描耗时(毫秒)"
+        },
+        "rootPath": {
+          "type": "string",
+          "description": "扫描的根路径"
+        },
+        "totalFiles": {
+          "type": "integer",
+          "description": "扫描到的文件总数"
+        },
+        "filteredFiles": {
+          "type": "integer", 
+          "description": "经过过滤后的文件数"
+        },
+        "files": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/FileItem"},
+          "description": "扫描到的文件列表"
+        },
+        "errors": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/ScanError"},
+          "description": "扫描过程中的错误列表"
+        },
+        "statistics": {
+          "$ref": "#/definitions/ScanStatistics"
+        }
+      },
+      "required": ["sessionId", "startTime", "totalFiles", "files"]
+    },
+    
+    "ScanError": {
+      "type": "object", 
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "description": "出错的文件路径"
+        },
+        "errorCode": {
+          "type": "string",
+          "description": "错误代码"
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "错误消息"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "错误发生时间"
+        }
+      },
+      "required": ["filePath", "errorCode", "errorMessage"]
+    },
+    
+    "ScanStatistics": {
+      "type": "object",
+      "properties": {
+        "filesByExtension": {
+          "type": "object",
+          "additionalProperties": {"type": "integer"},
+          "description": "按扩展名分组的文件数量"
+        },
+        "totalFileSize": {
+          "type": "integer",
+          "description": "所有文件的总大小(字节)"
+        },
+        "averageFileSize": {
+          "type": "number",
+          "description": "平均文件大小(字节)"
+        },
+        "largestFile": {
+          "type": "object",
+          "properties": {
+            "path": {"type": "string"},
+            "size": {"type": "integer"}
+          }
+        },
+        "processingSpeed": {
+          "type": "number",
+          "description": "处理速度(文件/秒)"
+        }
+      }
+    },
+    
+    "IdentificationOptions": {
+      "type": "object",
+      "properties": {
+        "aiProvider": {
+          "type": "string",
+          "enum": ["qwen", "openai", "claude"],
+          "default": "qwen",
+          "description": "使用的AI服务提供商"
+        },
+        "model": {
+          "type": "string", 
+          "default": "qwen-plus",
+          "description": "使用的AI模型"
+        },
+        "batchSize": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "批处理大小"
+        },
+        "confidenceThreshold": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "识别置信度阈值"
+        },
+        "retryCount": {
+          "type": "integer",
+          "default": 2,
+          "minimum": 0,
+          "description": "API调用重试次数"
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 30000,
+          "description": "单次API调用超时时间(毫秒)"
+        }
+      }
+    },
+    
+    "IdentificationResult": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "description": "识别会话ID"
+        },
+        "processedFiles": {
+          "type": "integer",
+          "description": "处理的文件数量"
+        },
+        "promptFiles": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/PromptFileResult"},
+          "description": "包含提示词的文件列表"
+        },
+        "statistics": {
+          "type": "object",
+          "properties": {
+            "totalApiCalls": {"type": "integer"},
+            "successfulCalls": {"type": "integer"},
+            "failedCalls": {"type": "integer"},
+            "averageConfidence": {"type": "number"},
+            "processingTime": {"type": "integer"}
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/IdentificationError"}
+        }
+      },
+      "required": ["sessionId", "processedFiles", "promptFiles"]
+    },
+    
+    "PromptFileResult": {
+      "type": "object", 
+      "properties": {
+        "fileId": {
+          "type": "string",
+          "description": "文件唯一标识符"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "文件路径"
+        },
+        "hasPrompts": {
+          "type": "boolean",
+          "description": "是否包含提示词"
+        },
+        "confidence": {
+          "type": "number",
+          "description": "识别置信度(0-1)"
+        },
+        "promptCount": {
+          "type": "integer",
+          "description": "估计的提示词数量"
+        },
+        "identificationReason": {
+          "type": "string",
+          "description": "识别理由描述"
+        },
+        "keyPhrases": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "关键短语列表"
+        },
+        "processingTime": {
+          "type": "integer",
+          "description": "处理时间(毫秒)"
+        }
+      },
+      "required": ["fileId", "filePath", "hasPrompts", "confidence"]
+    },
+    
+    "IdentificationError": {
+      "type": "object",
+      "properties": {
+        "fileId": {"type": "string"},
+        "filePath": {"type": "string"},
+        "errorCode": {"type": "string"},
+        "errorMessage": {"type": "string"},
+        "retryCount": {"type": "integer"},
+        "timestamp": {"type": "string", "format": "date-time"}
+      },
+      "required": ["fileId", "errorCode", "errorMessage"]
+    },
+    
+    "ExtractionOptions": {
+      "type": "object",
+      "properties": {
+        "includeContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否包含上下文信息"
+        },
+        "contextLines": {
+          "type": "integer",
+          "default": 5,
+          "description": "上下文行数"
+        },
+        "preserveFormatting": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否保留原始格式"
+        },
+        "extractionMode": {
+          "type": "string",
+          "enum": ["automatic", "structured", "manual"],
+          "default": "automatic",
+          "description": "提取模式"
+        }
+      }
+    },
+    
+    "ExtractionResult": {
+      "type": "object",
+      "properties": {
+        "fileId": {"type": "string"},
+        "extractedPrompts": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/ExtractedPrompt"}
+        },
+        "extractionMetadata": {
+          "type": "object",
+          "properties": {
+            "extractionTime": {"type": "string", "format": "date-time"},
+            "extractionMethod": {"type": "string"},
+            "processingTime": {"type": "integer"}
+          }
+        }
+      },
+      "required": ["fileId", "extractedPrompts"]
+    },
+    
+    "ExtractedPrompt": {
+      "type": "object",
+      "properties": {
+        "promptId": {"type": "string"},
+        "name": {"type": "string"},
+        "content": {"type": "string"},
+        "startLine": {"type": "integer"},
+        "endLine": {"type": "integer"},
+        "startColumn": {"type": "integer"},
+        "endColumn": {"type": "integer"},
+        "contextBefore": {"type": "string"},
+        "contextAfter": {"type": "string"},
+        "confidence": {"type": "number"},
+        "extractionNotes": {"type": "string"}
+      },
+      "required": ["promptId", "content", "startLine", "endLine"]
+    }
+  }
+}

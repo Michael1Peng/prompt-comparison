@@ -1,0 +1,648 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "提示词分析服务API契约",
+  "version": "1.0.0",
+  "description": "定义AI提示词15要素分析服务的输入输出接口",
+  
+  "services": {
+    "PromptAnalyzer": {
+      "description": "使用AI对提示词进行15个框架要素的结构化分析",
+      
+      "methods": {
+        "analyzePrompt": {
+          "description": "分析单个提示词的框架要素",
+          "input": {
+            "type": "object",
+            "properties": {
+              "prompt": {
+                "$ref": "#/definitions/PromptInput"
+              },
+              "options": {
+                "$ref": "#/definitions/AnalysisOptions"
+              }
+            },
+            "required": ["prompt"]
+          },
+          "output": {
+            "$ref": "#/definitions/AnalysisResult"
+          },
+          "errors": [
+            {
+              "code": "AI_API_UNAVAILABLE",
+              "message": "AI分析服务不可用"
+            },
+            {
+              "code": "ANALYSIS_TIMEOUT",
+              "message": "分析请求超时"
+            },
+            {
+              "code": "PROMPT_TOO_LONG",
+              "message": "提示词内容过长超出模型限制"
+            },
+            {
+              "code": "INVALID_PROMPT_FORMAT",
+              "message": "提示词格式无效"
+            }
+          ]
+        },
+        
+        "analyzeBatch": {
+          "description": "批量分析多个提示词",
+          "input": {
+            "type": "object",
+            "properties": {
+              "prompts": {
+                "type": "array",
+                "items": {"$ref": "#/definitions/PromptInput"},
+                "description": "要分析的提示词列表"
+              },
+              "options": {
+                "$ref": "#/definitions/BatchAnalysisOptions"
+              }
+            },
+            "required": ["prompts"]
+          },
+          "output": {
+            "$ref": "#/definitions/BatchAnalysisResult"
+          },
+          "errors": [
+            {
+              "code": "BATCH_SIZE_EXCEEDED",
+              "message": "批处理大小超出限制"
+            },
+            {
+              "code": "PARTIAL_BATCH_FAILURE",
+              "message": "批处理部分失败"
+            }
+          ]
+        },
+        
+        "validateAnalysis": {
+          "description": "验证分析结果的完整性和质量",
+          "input": {
+            "type": "object",
+            "properties": {
+              "analysisResult": {
+                "$ref": "#/definitions/AnalysisResult"
+              },
+              "validationRules": {
+                "$ref": "#/definitions/ValidationRules"
+              }
+            },
+            "required": ["analysisResult"]
+          },
+          "output": {
+            "$ref": "#/definitions/ValidationResult"
+          }
+        },
+        
+        "retryAnalysis": {
+          "description": "重新分析失败或低质量的提示词",
+          "input": {
+            "type": "object",
+            "properties": {
+              "promptId": {
+                "type": "string",
+                "description": "要重新分析的提示词ID"
+              },
+              "retryOptions": {
+                "$ref": "#/definitions/RetryOptions"
+              }
+            },
+            "required": ["promptId"]
+          },
+          "output": {
+            "$ref": "#/definitions/AnalysisResult"
+          }
+        }
+      }
+    }
+  },
+  
+  "definitions": {
+    "PromptInput": {
+      "type": "object",
+      "properties": {
+        "promptId": {
+          "type": "string",
+          "description": "提示词唯一标识符"
+        },
+        "name": {
+          "type": "string",
+          "description": "提示词名称"
+        },
+        "content": {
+          "type": "string",
+          "description": "提示词完整内容"
+        },
+        "sourceInfo": {
+          "type": "object",
+          "properties": {
+            "filePath": {"type": "string"},
+            "startLine": {"type": "integer"},
+            "endLine": {"type": "integer"},
+            "context": {"type": "string"}
+          },
+          "description": "来源信息"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "language": {"type": "string"},
+            "category": {"type": "string"},
+            "tags": {"type": "array", "items": {"type": "string"}},
+            "complexity": {"type": "number"}
+          },
+          "description": "提示词元数据"
+        }
+      },
+      "required": ["promptId", "content"]
+    },
+    
+    "AnalysisOptions": {
+      "type": "object",
+      "properties": {
+        "aiProvider": {
+          "type": "string",
+          "enum": ["qwen", "openai", "claude"],
+          "default": "qwen",
+          "description": "AI服务提供商"
+        },
+        "model": {
+          "type": "string",
+          "default": "qwen-plus",
+          "description": "使用的AI模型"
+        },
+        "language": {
+          "type": "string",
+          "enum": ["zh", "en", "auto"],
+          "default": "auto",
+          "description": "分析输出语言"
+        },
+        "analysisDepth": {
+          "type": "string",
+          "enum": ["basic", "standard", "detailed"],
+          "default": "standard",
+          "description": "分析深度"
+        },
+        "includeConfidence": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否包含置信度评分"
+        },
+        "enableRetry": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否启用自动重试"
+        },
+        "retryCount": {
+          "type": "integer",
+          "default": 2,
+          "minimum": 0,
+          "maximum": 5,
+          "description": "最大重试次数"
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 45000,
+          "description": "分析超时时间(毫秒)"
+        },
+        "temperature": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "AI生成随机性"
+        }
+      }
+    },
+    
+    "BatchAnalysisOptions": {
+      "allOf": [
+        {"$ref": "#/definitions/AnalysisOptions"},
+        {
+          "type": "object",
+          "properties": {
+            "batchSize": {
+              "type": "integer",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 10,
+              "description": "批处理大小"
+            },
+            "concurrency": {
+              "type": "integer",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 5,
+              "description": "并发分析数"
+            },
+            "stopOnError": {
+              "type": "boolean",
+              "default": false,
+              "description": "遇到错误是否停止批处理"
+            },
+            "progressCallback": {
+              "type": "boolean",
+              "default": true,
+              "description": "是否启用进度回调"
+            }
+          }
+        }
+      ]
+    },
+    
+    "AnalysisResult": {
+      "type": "object",
+      "properties": {
+        "analysisId": {
+          "type": "string",
+          "description": "分析结果ID"
+        },
+        "promptId": {
+          "type": "string",
+          "description": "分析的提示词ID"
+        },
+        "analysisTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "分析完成时间"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["completed", "failed", "partial"],
+          "description": "分析状态"
+        },
+        "elements": {
+          "$ref": "#/definitions/AnalysisElements"
+        },
+        "qualityMetrics": {
+          "$ref": "#/definitions/QualityMetrics"
+        },
+        "metadata": {
+          "$ref": "#/definitions/AnalysisMetadata"
+        }
+      },
+      "required": ["analysisId", "promptId", "analysisTimestamp", "status", "elements"]
+    },
+    
+    "AnalysisElements": {
+      "type": "object",
+      "properties": {
+        "所在文件": {
+          "type": "string",
+          "description": "提示词所在的文件路径和位置信息"
+        },
+        "角色能力": {
+          "type": "string",
+          "description": "AI助手的身份、角色定义和专业能力设定"
+        },
+        "任务请求": {
+          "type": "string",
+          "description": "要完成的具体任务或用户请求描述"
+        },
+        "背景情境": {
+          "type": "string",
+          "description": "相关背景信息、使用场景和上下文环境"
+        },
+        "指令行动": {
+          "type": "string",
+          "description": "具体的执行步骤、操作指令和行动方案"
+        },
+        "输入格式": {
+          "type": "string",
+          "description": "期望的输入数据格式、类型和结构要求"
+        },
+        "输出规格": {
+          "type": "string",
+          "description": "期望的输出格式、结构和呈现方式"
+        },
+        "示例": {
+          "type": "string",
+          "description": "输入输出示例、参考案例和演示内容"
+        },
+        "限制约束": {
+          "type": "string", 
+          "description": "限制条件、规则和边界约束"
+        },
+        "目标期望": {
+          "type": "string",
+          "description": "预期目标、成功标准和期望效果"
+        },
+        "信息": {
+          "type": "string",
+          "description": "需要的知识、数据和参考信息"
+        },
+        "评估优化": {
+          "type": "string",
+          "description": "质量评估标准和优化改进方向"
+        },
+        "调整": {
+          "type": "string",
+          "description": "可配置项、参数调整和自定义选项"
+        },
+        "受众": {
+          "type": "string",
+          "description": "目标用户、使用对象和受众群体"
+        },
+        "风格要求": {
+          "type": "string",
+          "description": "语言风格、语气和表达方式要求"
+        }
+      },
+      "required": [
+        "所在文件", "角色能力", "任务请求", "背景情境", "指令行动",
+        "输入格式", "输出规格", "示例", "限制约束", "目标期望",
+        "信息", "评估优化", "调整", "受众", "风格要求"
+      ]
+    },
+    
+    "QualityMetrics": {
+      "type": "object",
+      "properties": {
+        "overallConfidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "整体分析置信度"
+        },
+        "completenessScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "完整性评分"
+        },
+        "consistencyScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "一致性评分"
+        },
+        "elementConfidence": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "description": "各要素的置信度"
+        },
+        "elementsFound": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15,
+          "description": "找到内容的要素数量"
+        },
+        "averageElementLength": {
+          "type": "number",
+          "description": "要素内容平均长度"
+        },
+        "totalAnalysisWords": {
+          "type": "integer",
+          "description": "分析结果总词数"
+        }
+      },
+      "required": ["overallConfidence", "completenessScore", "elementsFound"]
+    },
+    
+    "AnalysisMetadata": {
+      "type": "object",
+      "properties": {
+        "processingTime": {
+          "type": "integer",
+          "description": "处理时间(毫秒)"
+        },
+        "modelUsed": {
+          "type": "string",
+          "description": "使用的AI模型"
+        },
+        "apiProvider": {
+          "type": "string",
+          "description": "API提供商"
+        },
+        "modelVersion": {
+          "type": "string",
+          "description": "模型版本"
+        },
+        "tokenUsage": {
+          "type": "object",
+          "properties": {
+            "inputTokens": {"type": "integer"},
+            "outputTokens": {"type": "integer"},
+            "totalTokens": {"type": "integer"}
+          },
+          "description": "令牌使用统计"
+        },
+        "retryCount": {
+          "type": "integer",
+          "description": "实际重试次数"
+        },
+        "errorMessages": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "处理过程中的错误信息"
+        },
+        "analysisSettings": {
+          "type": "object",
+          "description": "使用的分析设置"
+        }
+      }
+    },
+    
+    "BatchAnalysisResult": {
+      "type": "object",
+      "properties": {
+        "batchId": {
+          "type": "string",
+          "description": "批处理会话ID"
+        },
+        "startTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "批处理开始时间"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "批处理结束时间"
+        },
+        "totalDuration": {
+          "type": "integer",
+          "description": "总处理时间(毫秒)"
+        },
+        "totalPrompts": {
+          "type": "integer",
+          "description": "提示词总数"
+        },
+        "successCount": {
+          "type": "integer",
+          "description": "成功分析的数量"
+        },
+        "failureCount": {
+          "type": "integer",
+          "description": "失败的数量"
+        },
+        "results": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/AnalysisResult"},
+          "description": "分析结果列表"
+        },
+        "errors": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/AnalysisError"},
+          "description": "错误列表"
+        },
+        "statistics": {
+          "$ref": "#/definitions/BatchStatistics"
+        }
+      },
+      "required": ["batchId", "totalPrompts", "successCount", "failureCount", "results"]
+    },
+    
+    "AnalysisError": {
+      "type": "object",
+      "properties": {
+        "promptId": {
+          "type": "string",
+          "description": "出错的提示词ID"
+        },
+        "errorCode": {
+          "type": "string",
+          "description": "错误代码"
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "错误消息"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "错误发生时间"
+        },
+        "retryCount": {
+          "type": "integer",
+          "description": "重试次数"
+        },
+        "context": {
+          "type": "object",
+          "description": "错误上下文信息"
+        }
+      },
+      "required": ["promptId", "errorCode", "errorMessage"]
+    },
+    
+    "BatchStatistics": {
+      "type": "object",
+      "properties": {
+        "averageProcessingTime": {
+          "type": "number",
+          "description": "平均处理时间(毫秒)"
+        },
+        "averageConfidence": {
+          "type": "number",
+          "description": "平均置信度"
+        },
+        "averageCompleteness": {
+          "type": "number",
+          "description": "平均完整性"
+        },
+        "totalTokensUsed": {
+          "type": "integer",
+          "description": "总令牌使用量"
+        },
+        "totalApiCalls": {
+          "type": "integer",
+          "description": "总API调用次数"
+        },
+        "estimatedCost": {
+          "type": "number",
+          "description": "估算成本(USD)"
+        }
+      }
+    },
+    
+    "ValidationRules": {
+      "type": "object",
+      "properties": {
+        "minConfidence": {
+          "type": "number",
+          "default": 0.6,
+          "description": "最小置信度要求"
+        },
+        "minCompleteness": {
+          "type": "number", 
+          "default": 0.7,
+          "description": "最小完整性要求"
+        },
+        "requiredElements": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "必须包含的要素"
+        },
+        "minElementLength": {
+          "type": "integer",
+          "default": 10,
+          "description": "要素最小长度"
+        },
+        "maxEmptyElements": {
+          "type": "integer",
+          "default": 5,
+          "description": "允许的最大空要素数"
+        }
+      }
+    },
+    
+    "ValidationResult": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "boolean",
+          "description": "是否通过验证"
+        },
+        "validationScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "验证评分"
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rule": {"type": "string"},
+              "message": {"type": "string"},
+              "severity": {"type": "string", "enum": ["error", "warning", "info"]}
+            }
+          },
+          "description": "验证违规列表"
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "改进建议"
+        }
+      },
+      "required": ["isValid", "validationScore", "violations"]
+    },
+    
+    "RetryOptions": {
+      "type": "object",
+      "properties": {
+        "retryReason": {
+          "type": "string",
+          "description": "重试原因"
+        },
+        "useAlternativeModel": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否使用替代模型"
+        },
+        "adjustedSettings": {
+          "$ref": "#/definitions/AnalysisOptions",
+          "description": "调整后的分析设置"
+        }
+      }
+    }
+  }
+}
