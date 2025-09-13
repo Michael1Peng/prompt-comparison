@@ -1,0 +1,27 @@
+node_modules
+dist
+coverage
+*.log
+*.pid
+*.seed
+*.pid.lock
+.nyc_output
+.DS_Store
+.vscode
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Analysis output
+analysis/
+*.json.bak
+
+# Git
+.git
+
+# Specifications (keep original formatting)
+specs/
+CLAUDE.md
+history.xml
