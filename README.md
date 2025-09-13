@@ -68,7 +68,7 @@ node src/scan.js [选项]
 - `-o, --output <path>`: 指定输出文件路径（默认：./analysis/prompt-files.json）
 - `-c, --concurrency <number>`: 设置并发处理数量（默认：5）
 - `--api-base <url>`: OpenAI API 基础URL（默认：https://api.openai.com/v1）
-- `--model <name>`: GPT模型名称（默认：gpt-4o）
+- `--model <name>`: GPT模型名称（默认：gpt-5）
 - `--no-pretty`: 关闭JSON格式化输出
 - `--verbose`: 显示详细输出信息
 - `-V, --version`: 显示版本号
@@ -96,7 +96,7 @@ node src/scan.js --model gpt-3.5-turbo
 node src/scan.js --no-pretty
 
 # 组合使用多个选项
-node src/scan.js -c 8 --model gpt-4o --api-base https://api.openai.com/v1 --verbose
+node src/scan.js -c 8 --model gpt-5 --api-base https://api.openai.com/v1 --verbose
 ```
 
 ## 支持的文件类型
@@ -211,9 +211,9 @@ analysis/                   # 输出目录
 
 4. **模型不可用**
    ```
-   错误: The model 'gpt-4o' does not exist
-   解决: 检查OpenAI账户是否有权限访问GPT-4模型
-   或使用: node src/scan.js --model gpt-3.5-turbo
+   错误: The model 'gpt-5' does not exist
+   解决: 检查OpenAI账户是否有权限访问GPT-5模型
+   或使用: node src/scan.js --model gpt-4o
    ```
 
 5. **Node.js版本过低**

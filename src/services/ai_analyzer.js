@@ -40,7 +40,7 @@ export class AIAnalyzer {
     this.limit = pLimit(this.concurrencyLimit);
     
     // GPT模型设置
-    this.model = options.model || 'gpt-4o';
+    this.model = options.model || 'gpt-5';
     this.temperature = options.temperature || 0.1;
     
     // 错误统计

@@ -28,7 +28,7 @@ program
   .option('-o, --output <path>', `输出文件路径 (默认: ${DEFAULT_OUTPUT_PATH})`, DEFAULT_OUTPUT_PATH)
   .option('-c, --concurrency <number>', '并发处理数量 (默认: 5)', '5')
   .option('--api-base <url>', 'OpenAI API 基础URL (默认: https://api.openai.com/v1)')
-  .option('--model <name>', 'GPT模型名称 (默认: gpt-4o)', 'gpt-4o')
+  .option('--model <name>', 'GPT模型名称 (默认: gpt-5)', 'gpt-5')
   .option('--no-pretty', '关闭JSON格式化输出')
   .option('--verbose', '显示详细输出信息')
   .parse();
