@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-ai-ai-ai`  
 **Created**: 2025-09-13  
-**Status**: Draft  
+**Status**: Requirements Clarified  
 **Input**: User description: "现在有很多质量非常高的 AI 智能体流程的开源项目，比如说 AI 编码相关的，他们里面有大量优秀的提示词设计。然后仓库里面这些大量的提示词文件，我想把它们都找到。对他们进行统一化的框架层面的要素分析，去分析他们每个提示词都有哪些元素？最后能够汇总在一个表格里面去做对比。先帮我实现第一步需求，实现一个AI agent工作流能够把当前仓库所有带有提示词内容的文件都找出来，之后汇总到一个固定的文件里面。注意，你要以最简单的方式来实现这个MVP产品，产品方案和技术方案都选择最简单的实现。然后实现的代码也只关注主流程能够跑通。基于TDD的方式来实现每个步骤。"
 
 ## User Scenarios & Testing *(mandatory)*
@@ -16,26 +16,39 @@
 3. **Given** 空仓库或无提示词文件的仓库，**When** 运行工具，**Then** 系统应该生成一个空的汇总文件并提示无发现内容
 
 ### Edge Cases
-- 当仓库中文件权限不可读时如何处理？
-- 当文件过大导致内存不足时如何处理？
-- 当输出文件已存在时是否覆盖？
-- 二进制文件中包含提示词内容时如何处理？
+- **文件权限不足**: 记录错误日志并跳过，不阻塞整体流程
+- **API调用失败**: 记录失败日志并跳过该文件，继续处理其他文件
+- **输出文件存在**: 每次执行都完全重新生成，覆盖之前结果
+- **二进制文件处理**: 预先过滤掉非文本文件（多媒体、二进制文件等）
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 - **FR-001**: 系统必须能够遍历当前Git仓库的所有文件
-- **FR-002**: 系统必须能够识别包含AI提示词内容的文件（基于文件内容关键词匹配：prompt、system、user、assistant等关键词）
-- **FR-003**: 系统必须能够提取每个提示词文件的基本信息（文件路径、大小、修改时间等）
-- **FR-004**: 系统必须将发现的所有提示词文件信息汇总到一个固定的输出文件中
-- **FR-005**: 系统必须提供命令行界面供用户执行扫描和汇总操作
+- **FR-002**: 系统必须使用OpenAI GPT-5 API来智能识别包含AI提示词内容的文件，支持5个并发API调用
+- **FR-003**: 系统必须提取每个提示词文件的详细信息：文件路径、提示词内容摘要、内容位置信息、AI置信度、提示词类型分类
+- **FR-004**: 系统必须将发现的所有提示词文件信息汇总到固定目录 `./analysis/` 下的JSON文件中
+- **FR-005**: 系统必须提供单个命令行命令执行完整流程，显示进度条和当前处理文件信息
 - **FR-006**: 系统必须忽略Git忽略的文件和目录（.gitignore规则）
-- **FR-007**: 输出文件必须采用JSON格式以便后续处理
+- **FR-007**: 输出JSON文件必须包含扫描统计信息（总文件数、发现提示词文件数量）和详细的文件分析结果
+- **FR-008**: 系统必须过滤掉非文本文件，只处理可能包含提示词的文本文件
+- **FR-009**: 系统必须基于Node.js实现，采用模块化架构设计
+- **FR-010**: 系统必须包含基础的单元测试覆盖（每个主要函数至少2个测试用例）
 
 ### Key Entities *(include if feature involves data)*
-- **PromptFile**: 代表一个包含AI提示词的文件，包含文件路径、文件大小、最后修改时间、文件类型等属性
-- **ScanResult**: 代表整个扫描过程的结果，包含发现的提示词文件列表、扫描时间、统计信息等
-- **OutputSummary**: 代表最终输出的汇总文件，包含所有发现文件的结构化信息
+- **PromptFile**: 代表一个包含AI提示词的文件
+  - `filePath`: 文件路径
+  - `summary`: 提示词内容摘要
+  - `startPosition`: 提示词内容起始位置
+  - `endPosition`: 提示词内容结束位置
+  - `confidence`: AI判断的置信度
+  - `promptType`: 提示词类型（system, user, assistant等）
+- **ScanResult**: 代表整个扫描结果
+  - `totalFiles`: 扫描的总文件数
+  - `promptFiles`: 发现的提示词文件数量
+  - `files`: PromptFile对象数组
+  - `scanTime`: 扫描时间戳
+- **技术实现**: Node.js, OpenAI SDK, 模块化架构
 
 ---
 
@@ -65,5 +78,7 @@
 - [x] Requirements generated
 - [x] Entities identified
 - [x] Review checklist passed
+- [x] Requirements clarified through Q&A
+- [x] Technical implementation details confirmed
 
 ---
