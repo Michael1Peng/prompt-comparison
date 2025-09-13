@@ -2,7 +2,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
-  testMatch: ['<rootDir>/tests/**/*.(test|spec).ts', '<rootDir>/tests/**/*.(test|spec).js'],
+  testMatch: ['<rootDir>/tests/**/*.(test|spec).ts'],
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
@@ -17,24 +17,10 @@ module.exports = {
       statements: 90,
     },
   },
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 30000,
   verbose: true,
-  projects: [
-    {
-      displayName: 'contract',
-      testMatch: ['<rootDir>/tests/contract/**/*.(test|spec).ts'],
-    },
-    {
-      displayName: 'integration',
-      testMatch: ['<rootDir>/tests/integration/**/*.(test|spec).ts'],
-    },
-    {
-      displayName: 'unit',
-      testMatch: ['<rootDir>/tests/unit/**/*.(test|spec).ts'],
-    },
-  ],
 };
