@@ -1,0 +1,39 @@
+{
+  "name": "ai-prompt-file-scanner",
+  "version": "1.0.0",
+  "description": "AI提示词文件发现和汇总工具 - 扫描Git仓库识别AI提示词文件，生成JSON分析报告",
+  "type": "module",
+  "main": "src/scan.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "start": "node src/scan.js"
+  },
+  "dependencies": {
+    "openai": "^4.20.1",
+    "commander": "^11.1.0",
+    "chalk": "^5.3.0",
+    "fs-extra": "^11.1.1",
+    "ignore": "^5.3.0",
+    "p-limit": "^5.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "keywords": [
+    "ai",
+    "prompt",
+    "scanner",
+    "git",
+    "analysis",
+    "openai",
+    "gpt-5"
+  ],
+  "author": "Michael Peng",
+  "license": "MIT"
+}
