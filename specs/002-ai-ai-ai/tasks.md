@@ -51,8 +51,8 @@
 ## Phase 3.4: Integration ✅ COMPLETED
 - [x] T014 Create analysis/ directory and handle JSON output to ./analysis/prompt-files.json
 
-## Phase 3.5: Polish
-- [ ] T015 [P] Create basic usage documentation in README.md
+## Phase 3.5: Polish ✅ COMPLETED  
+- [x] T015 [P] Create basic usage documentation in README.md
 
 ## Dependencies
 - Setup (T001-T003) before Tests (T004-T008)
