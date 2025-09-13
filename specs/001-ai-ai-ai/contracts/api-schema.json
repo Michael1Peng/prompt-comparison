@@ -1,0 +1,524 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://prompt-analyzer.com/schemas/api-v1.json",
+  "title": "AI 提示词分析工作流 API Schema",
+  "description": "定义所有输入输出数据结构的JSON Schema",
+  "version": "1.0.0",
+
+  "definitions": {
+    "ScanStatus": {
+      "type": "string",
+      "enum": ["pending", "processing", "completed", "failed", "skipped"],
+      "description": "文件扫描状态"
+    },
+
+    "Language": {
+      "type": "string",
+      "enum": ["zh", "en", "mixed", "other"],
+      "description": "提示词主要语言"
+    },
+
+    "ContentType": {
+      "type": "string",
+      "enum": ["system", "user", "assistant", "conversation", "code_comment", "documentation", "configuration"],
+      "description": "提示词内容类型"
+    },
+
+    "QualityScore": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D", "F"],
+      "description": "提示词质量评级"
+    },
+
+    "LogLevel": {
+      "type": "string",
+      "enum": ["debug", "info", "warn", "error", "fatal"],
+      "description": "日志级别"
+    },
+
+    "PromptFile": {
+      "type": "object",
+      "required": ["filePath", "fileName", "fileExtension", "fileSize", "lastModified", "scanStatus", "scanTimestamp"],
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "description": "相对于仓库根目录的路径",
+          "minLength": 1
+        },
+        "fileName": {
+          "type": "string",
+          "description": "文件名（不含路径）",
+          "minLength": 1
+        },
+        "fileExtension": {
+          "type": "string",
+          "description": "文件扩展名",
+          "pattern": "^\\.[a-z0-9]+$"
+        },
+        "fileSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "文件大小（字节）"
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date-time",
+          "description": "最后修改时间"
+        },
+        "encoding": {
+          "type": "string",
+          "default": "UTF-8",
+          "description": "文件编码"
+        },
+        "scanStatus": {
+          "$ref": "#/definitions/ScanStatus"
+        },
+        "scanTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "扫描时间"
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "错误信息（如果有）"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "PromptContent": {
+      "type": "object",
+      "required": ["contentId", "sourceFile", "originalText", "cleanedText", "language", "contentType", "isPrompt", "confidence", "detectionMethod"],
+      "properties": {
+        "contentId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "唯一标识符"
+        },
+        "sourceFile": {
+          "type": "string",
+          "description": "来源文件路径",
+          "minLength": 1
+        },
+        "originalText": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 51200,
+          "description": "原始提示词文本"
+        },
+        "cleanedText": {
+          "type": "string",
+          "description": "清理后的文本"
+        },
+        "language": {
+          "$ref": "#/definitions/Language"
+        },
+        "contentType": {
+          "$ref": "#/definitions/ContentType"
+        },
+        "isPrompt": {
+          "type": "boolean",
+          "description": "是否为提示词"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "置信度"
+        },
+        "detectionMethod": {
+          "type": "string",
+          "description": "检测方法标识"
+        },
+        "startPosition": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "文件中的开始位置"
+        },
+        "endPosition": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "文件中的结束位置"
+        },
+        "lineRange": {
+          "type": "object",
+          "properties": {
+            "start": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "end": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": ["start", "end"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "ElementData": {
+      "type": "object",
+      "required": ["present", "confidence"],
+      "properties": {
+        "present": {
+          "type": "boolean",
+          "description": "是否存在该要素"
+        },
+        "content": {
+          "type": "string",
+          "description": "要素内容"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "置信度"
+        },
+        "extractedText": {
+          "type": "string",
+          "description": "原文摘录"
+        },
+        "position": {
+          "type": "object",
+          "properties": {
+            "start": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "length": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": ["start", "length"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "PromptElements": {
+      "type": "object",
+      "required": [
+        "elementId", "contentId", "sourceFile", "roleAbility", "taskRequest",
+        "contextSituation", "instructionAction", "outputSpec", "examples",
+        "constraints", "objectives", "information", "evaluation", "adjustment",
+        "audience", "analysisTimestamp", "analysisModel", "completeness", "qualityScore"
+      ],
+      "properties": {
+        "elementId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "唯一标识符"
+        },
+        "contentId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "关联的内容ID"
+        },
+        "sourceFile": {
+          "type": "string",
+          "description": "所在文件"
+        },
+        "roleAbility": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "taskRequest": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "contextSituation": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "instructionAction": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "outputSpec": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "examples": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "constraints": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "objectives": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "information": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "evaluation": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "adjustment": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "audience": {
+          "$ref": "#/definitions/ElementData"
+        },
+        "analysisTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "分析时间"
+        },
+        "analysisModel": {
+          "type": "string",
+          "description": "使用的AI模型"
+        },
+        "completeness": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "完整性评分"
+        },
+        "qualityScore": {
+          "$ref": "#/definitions/QualityScore"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "AnalysisReport": {
+      "type": "object",
+      "required": ["reportId", "projectPath", "createdAt", "version", "scanSummary", "contentSummary", "elementSummary", "performance", "files", "contents", "elements"],
+      "properties": {
+        "reportId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "报告唯一标识"
+        },
+        "projectPath": {
+          "type": "string",
+          "description": "分析的项目路径"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "创建时间"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "工具版本"
+        },
+        "scanSummary": {
+          "type": "object",
+          "required": ["totalFiles", "scannedFiles", "promptFiles", "failedFiles", "skippedFiles"],
+          "properties": {
+            "totalFiles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scannedFiles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "promptFiles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "failedFiles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "skippedFiles": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "contentSummary": {
+          "type": "object",
+          "required": ["totalPrompts", "byLanguage", "byType", "avgConfidence"],
+          "properties": {
+            "totalPrompts": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "byLanguage": {
+              "type": "object",
+              "patternProperties": {
+                "^(zh|en|mixed|other)$": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            "byType": {
+              "type": "object",
+              "patternProperties": {
+                "^(system|user|assistant|conversation|code_comment|documentation|configuration)$": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            "avgConfidence": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "additionalProperties": false
+        },
+        "elementSummary": {
+          "type": "object",
+          "required": ["avgCompleteness", "qualityDistribution", "elementFrequency", "topMissingElements"],
+          "properties": {
+            "avgCompleteness": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "qualityDistribution": {
+              "type": "object",
+              "patternProperties": {
+                "^[ABCDF]$": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            "elementFrequency": {
+              "type": "object",
+              "patternProperties": {
+                "^[a-zA-Z]+$": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "topMissingElements": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 5
+            }
+          },
+          "additionalProperties": false
+        },
+        "performance": {
+          "type": "object",
+          "required": ["processingTime", "apiCallsCount", "totalTokens", "avgTimePerFile"],
+          "properties": {
+            "processingTime": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "处理总时间（毫秒）"
+            },
+            "apiCallsCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "totalTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "avgTimePerFile": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PromptFile"
+          }
+        },
+        "contents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PromptContent"
+          }
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PromptElements"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "ProcessingLog": {
+      "type": "object",
+      "required": ["logId", "timestamp", "level", "source", "message"],
+      "properties": {
+        "logId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "level": {
+          "$ref": "#/definitions/LogLevel"
+        },
+        "source": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "filePath": {
+          "type": "string"
+        },
+        "contentId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "errorCode": {
+          "type": "string"
+        },
+        "stackTrace": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "memoryUsage": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "apiResponse": {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "latency": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "AnalysisReport": {
+      "$ref": "#/definitions/AnalysisReport"
+    }
+  }
+}
