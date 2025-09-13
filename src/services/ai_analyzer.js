@@ -22,9 +22,18 @@ export class AIAnalyzer {
       throw new Error('OPENAI_API_KEY格式无效。请确保使用有效的OpenAI API密钥。');
     }
     
-    this.openai = new OpenAI({
+    // 构建OpenAI客户端配置
+    const openaiConfig = {
       apiKey: apiKey
-    });
+    };
+    
+    // 如果设置了自定义API Base URL，则使用它
+    if (process.env.OPENAI_API_BASE) {
+      openaiConfig.baseURL = process.env.OPENAI_API_BASE;
+      console.log(`使用自定义API Base URL: ${process.env.OPENAI_API_BASE}`);
+    }
+    
+    this.openai = new OpenAI(openaiConfig);
     
     // 配置并发限制（默认5个并发请求）
     this.concurrencyLimit = options.concurrencyLimit || 5;

@@ -30,6 +30,23 @@ npm install
 export OPENAI_API_KEY="your-api-key-here"
 ```
 
+### 环境变量配置
+
+除了命令行选项外，工具还支持以下环境变量：
+
+- **OPENAI_API_KEY** (必需): OpenAI API 密钥
+- **OPENAI_API_BASE** (可选): OpenAI API 基础URL，用于Azure OpenAI或其他兼容服务
+
+```bash
+# 使用环境变量设置API Base URL
+export OPENAI_API_BASE="https://your-resource.openai.azure.com/openai/deployments/your-deployment"
+export OPENAI_API_KEY="your-api-key"
+node src/scan.js
+
+# 或在单次命令中设置
+OPENAI_API_BASE="https://api.openai.com/v1" OPENAI_API_KEY="your-api-key" node src/scan.js
+```
+
 ## 使用方法
 
 ### 基本用法
@@ -50,6 +67,8 @@ node src/scan.js [选项]
 
 - `-o, --output <path>`: 指定输出文件路径（默认：./analysis/prompt-files.json）
 - `-c, --concurrency <number>`: 设置并发处理数量（默认：5）
+- `--api-base <url>`: OpenAI API 基础URL（默认：https://api.openai.com/v1）
+- `--model <name>`: GPT模型名称（默认：gpt-4o）
 - `--no-pretty`: 关闭JSON格式化输出
 - `--verbose`: 显示详细输出信息
 - `-V, --version`: 显示版本号
@@ -67,8 +86,17 @@ node src/scan.js -o ./reports/my-analysis.json
 # 增加并发数并启用详细输出
 node src/scan.js -c 10 --verbose
 
+# 使用自定义API基础URL（如Azure OpenAI）
+node src/scan.js --api-base https://your-resource.openai.azure.com/openai/deployments/your-deployment
+
+# 使用不同的GPT模型
+node src/scan.js --model gpt-3.5-turbo
+
 # 生成非格式化的紧凑JSON
 node src/scan.js --no-pretty
+
+# 组合使用多个选项
+node src/scan.js -c 8 --model gpt-4o --api-base https://api.openai.com/v1 --verbose
 ```
 
 ## 支持的文件类型

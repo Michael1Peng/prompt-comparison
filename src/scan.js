@@ -27,6 +27,8 @@ program
   .version(packageJson.version)
   .option('-o, --output <path>', `输出文件路径 (默认: ${DEFAULT_OUTPUT_PATH})`, DEFAULT_OUTPUT_PATH)
   .option('-c, --concurrency <number>', '并发处理数量 (默认: 5)', '5')
+  .option('--api-base <url>', 'OpenAI API 基础URL (默认: https://api.openai.com/v1)')
+  .option('--model <name>', 'GPT模型名称 (默认: gpt-4o)', 'gpt-4o')
   .option('--no-pretty', '关闭JSON格式化输出')
   .option('--verbose', '显示详细输出信息')
   .parse();
@@ -45,10 +47,19 @@ async function main() {
     // 验证环境
     await validateEnvironment();
     
+    // 处理命令行参数设置的API Base URL
+    if (options.apiBase) {
+      process.env.OPENAI_API_BASE = options.apiBase;
+      if (options.verbose) {
+        console.log(chalk.gray(`使用自定义API Base URL: ${options.apiBase}`));
+      }
+    }
+    
     // 初始化服务
     const scanner = new FileScanner();
     const analyzer = new AIAnalyzer({
-      concurrencyLimit: parseInt(options.concurrency)
+      concurrencyLimit: parseInt(options.concurrency),
+      model: options.model
     });
     const generator = new OutputGenerator({
       outputPath: options.output,
@@ -59,6 +70,8 @@ async function main() {
       console.log(chalk.gray('配置信息:'));
       console.log(chalk.gray(`- 输出路径: ${options.output}`));
       console.log(chalk.gray(`- 并发数: ${options.concurrency}`));
+      console.log(chalk.gray(`- GPT模型: ${options.model}`));
+      console.log(chalk.gray(`- API Base URL: ${process.env.OPENAI_API_BASE || 'https://api.openai.com/v1'}`));
       console.log(chalk.gray(`- 格式化输出: ${options.pretty !== false}`));
     }
     
