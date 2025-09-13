@@ -155,23 +155,59 @@ analysis/                   # 输出目录
 
 ### 常见问题
 
-1. **API密钥错误**
+1. **API密钥未设置**
    ```
    错误: OPENAI_API_KEY环境变量未设置
-   解决: 设置正确的OpenAI API密钥
+   解决: 
+   export OPENAI_API_KEY="sk-your-actual-api-key"
+   
+   或者直接运行:
+   OPENAI_API_KEY="sk-your-actual-api-key" node src/scan.js
    ```
 
-2. **Node.js版本过低**
+2. **API密钥格式错误**
+   ```
+   错误: OPENAI_API_KEY格式无效
+   解决: 确保API密钥以 "sk-" 开头且长度至少40字符
+   获取密钥: https://platform.openai.com/account/api-keys
+   ```
+
+3. **API密钥无效**
+   ```
+   错误: 401 Incorrect API key provided
+   解决: 
+   - 检查API密钥是否正确
+   - 确保账户有足够余额
+   - 验证API密钥权限设置
+   ```
+
+4. **模型不可用**
+   ```
+   错误: The model 'gpt-4o' does not exist
+   解决: 检查OpenAI账户是否有权限访问GPT-4模型
+   或使用: node src/scan.js --model gpt-3.5-turbo
+   ```
+
+5. **Node.js版本过低**
    ```
    错误: 需要Node.js 18+版本
    解决: 升级到Node.js 18.0.0或更高版本
    ```
 
-3. **权限问题**
+6. **权限问题**
    ```
    错误: 无法写入输出文件
    解决: 检查输出目录的写入权限
+   chmod 755 analysis/
    ```
+
+### 调试模式
+
+启用详细输出以获取更多诊断信息：
+
+```bash
+node src/scan.js --verbose
+```
 
 ## 许可证
 

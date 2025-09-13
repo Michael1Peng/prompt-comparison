@@ -148,7 +148,21 @@ async function main() {
 async function validateEnvironment() {
   // 检查OPENAI_API_KEY
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY环境变量未设置。请设置您的OpenAI API密钥。');
+    console.error(chalk.red('❌ 缺少API密钥'));
+    console.error(chalk.red('请设置OpenAI API密钥:'));
+    console.error(chalk.gray('  export OPENAI_API_KEY="sk-your-api-key"'));
+    console.error(chalk.gray('或者:'));
+    console.error(chalk.gray('  OPENAI_API_KEY="sk-your-api-key" node src/scan.js'));
+    throw new Error('OPENAI_API_KEY环境变量未设置');
+  }
+  
+  // 验证API密钥格式
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey.startsWith('sk-') || apiKey.length < 40) {
+    console.error(chalk.red('❌ API密钥格式错误'));
+    console.error(chalk.red('OpenAI API密钥应该以 "sk-" 开头且长度至少40字符'));
+    console.error(chalk.gray('请访问 https://platform.openai.com/account/api-keys 获取有效密钥'));
+    throw new Error('OPENAI_API_KEY格式无效');
   }
   
   // 检查是否在Git仓库中

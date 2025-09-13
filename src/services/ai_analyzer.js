@@ -16,8 +16,14 @@ export class AIAnalyzer {
       throw new Error('OPENAI_API_KEY环境变量未设置');
     }
     
+    // 验证API密钥格式
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey.startsWith('sk-') || apiKey.length < 20) {
+      throw new Error('OPENAI_API_KEY格式无效。请确保使用有效的OpenAI API密钥。');
+    }
+    
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey: apiKey
     });
     
     // 配置并发限制（默认5个并发请求）
@@ -25,8 +31,12 @@ export class AIAnalyzer {
     this.limit = pLimit(this.concurrencyLimit);
     
     // GPT模型设置
-    this.model = options.model || 'gpt-5';
+    this.model = options.model || 'gpt-4o';
     this.temperature = options.temperature || 0.1;
+    
+    // 错误统计
+    this.errorCount = 0;
+    this.maxErrors = options.maxErrors || 5;
   }
 
   /**
@@ -37,6 +47,12 @@ export class AIAnalyzer {
   async analyzeFiles(filePaths) {
     try {
       console.log(`开始分析 ${filePaths.length} 个文件...`);
+      this.errorCount = 0; // 重置错误计数
+      
+      // 先测试API连接（使用第一个文件进行测试）
+      if (filePaths.length > 0) {
+        await this._testAPIConnection(filePaths[0]);
+      }
       
       // 使用并发限制处理文件
       const analysisPromises = filePaths.map(filePath => 
@@ -45,6 +61,11 @@ export class AIAnalyzer {
       
       // 等待所有文件分析完成
       const analysisResults = await Promise.all(analysisPromises);
+      
+      // 检查是否有太多失败
+      if (this.errorCount > this.maxErrors) {
+        throw new Error(`分析失败次数过多 (${this.errorCount})，请检查API密钥或网络连接。`);
+      }
       
       // 过滤出被识别为提示词的文件
       const promptFiles = analysisResults
@@ -69,7 +90,7 @@ export class AIAnalyzer {
       // 读取文件内容
       const content = await fs.readFile(filePath, 'utf-8');
       
-      // 调用GPT-5 API进行分析
+      // 调用GPT API进行分析
       const analysisResult = await this._callOpenAIAPI(content, filePath);
       
       if (analysisResult && analysisResult.isPrompt) {
@@ -79,8 +100,48 @@ export class AIAnalyzer {
       return null;
       
     } catch (error) {
+      this.errorCount++;
       console.warn(`警告: 分析文件 ${filePath} 失败: ${error.message}`);
+      
+      // 如果是API密钥问题，立即抛出错误
+      if (error.message.includes('401') || error.message.includes('Incorrect API key')) {
+        throw new Error(`OpenAI API密钥无效: ${error.message}`);
+      }
+      
       return null;
+    }
+  }
+
+  /**
+   * 测试API连接
+   * @param {string} testFilePath - 测试用文件路径
+   * @returns {Promise<void>}
+   */
+  async _testAPIConnection(testFilePath) {
+    try {
+      // 读取少量内容进行测试
+      const content = await fs.readFile(testFilePath, 'utf-8');
+      const testContent = content.substring(0, 100); // 只取前100字符
+      
+      // 简单的测试调用
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'user', content: 'This is a test. Please respond with "OK".' }
+        ],
+        temperature: 0.1,
+        max_tokens: 10
+      });
+      
+      if (!response.choices || !response.choices[0]) {
+        throw new Error('API响应格式异常');
+      }
+      
+    } catch (error) {
+      if (error.message.includes('401') || error.message.includes('Incorrect API key')) {
+        throw new Error(`OpenAI API密钥无效，请检查OPENAI_API_KEY环境变量: ${error.message}`);
+      }
+      throw new Error(`API连接测试失败: ${error.message}`);
     }
   }
 
