@@ -4,7 +4,7 @@
  */
 
 import { writeFile, mkdir } from 'fs/promises';
-import { join, dirname } from 'path';
+import { /* join, */ dirname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -13,20 +13,20 @@ import {
   ReportStatistics,
   ComparisonTable,
   TableRow,
-  TableColumn,
+  // TableColumn,
   TableCell,
   ReportInsight,
   OutputFormat,
   GenerationMetadata,
-  createDefaultReportSummary,
-  createEmptyTableCell,
+  // createDefaultReportSummary,
+  // createEmptyTableCell,
   generateTableId,
-  validateAnalysisReport,
+  // validateAnalysisReport,
   MIME_TYPE_MAPPING,
   DEFAULT_DISPLAY_OPTIONS
 } from '@/models/analysis-report.js';
 import { AnalysisElements } from '@/models/prompt-analysis.js';
-import { UUID, ReportType, OutputFormatType, TableType } from '@/models/common.js';
+import { /* UUID, */ ReportType, OutputFormatType, TableType } from '@/models/common.js';
 
 // ============== 输入接口 ==============
 
@@ -154,7 +154,7 @@ export interface ExportResult {
  * ReportGenerator 服务类
  */
 export class ReportGenerator {
-  private generatedReports: Map<string, AnalysisReport> = new Map();
+  // private generatedReports: Map<string, AnalysisReport> = new Map();
 
   constructor() {
     // 初始化报告生成器
@@ -171,9 +171,9 @@ export class ReportGenerator {
       reportType = 'summary',
       includeStatistics = true,
       includeInsights = true,
-      includeQualityAnalysis = true,
-      groupBy = 'category',
-      sortBy = 'name'
+      // includeQualityAnalysis = true,
+      // groupBy = 'category',
+      // sortBy = 'name'
     } = options;
 
     // 验证输入
@@ -262,11 +262,11 @@ export class ReportGenerator {
       reportType: reportType as ReportType,
       generatedAt: generationTime,
       summary: {
-        ...summary,
-        averageConfidence: prompts.reduce((acc, p) => acc + (p.qualityMetrics?.overallConfidence || 0), 0) / prompts.length,
-        averageCompleteness: prompts.reduce((acc, p) => acc + (p.qualityMetrics?.completenessScore || 0), 0) / prompts.length,
-        highQualityPrompts: prompts.filter(p => (p.qualityMetrics?.overallConfidence || 0) > 0.8).length,
-        topMissingElements: this.findTopMissingElements(prompts)
+        ...summary
+        // averageConfidence: prompts.reduce((acc, p) => acc + (p.qualityMetrics?.overallConfidence || 0), 0) / prompts.length,
+        // averageCompleteness: prompts.reduce((acc, p) => acc + (p.qualityMetrics?.completenessScore || 0), 0) / prompts.length,
+        // highQualityPrompts: prompts.filter(p => (p.qualityMetrics?.overallConfidence || 0) > 0.8).length,
+        // topMissingElements: this.findTopMissingElements(prompts)
       },
       sections,
       statistics,
@@ -291,9 +291,9 @@ export class ReportGenerator {
       layout = 'elements_as_rows',
       includedElements,
       maxPromptsPerTable = 4,
-      showEmptyElements = true,
+      // showEmptyElements = true,
       showEmptyCells = true,
-      highlightDifferences = true,
+      // highlightDifferences = true,
       highlightMissing = true,
       includeQualityScores = true,
       tableTitle = '提示词要素对比分析'
@@ -338,7 +338,7 @@ export class ReportGenerator {
       }
     ];
 
-    limitedPrompts.forEach((prompt, index) => {
+    limitedPrompts.forEach((prompt: AnalyzedPromptData, index: number) => {
       columns.push({
         key: `prompt_${index}`,
         label: prompt.name || `提示词 ${index + 1}`,
@@ -357,7 +357,7 @@ export class ReportGenerator {
 
     if (layout === 'prompts_as_rows') {
       // 提示词作为行
-      limitedPrompts.forEach((prompt, index) => {
+      limitedPrompts.forEach((prompt: AnalyzedPromptData, index: number) => {
         const cells: Record<string, TableCell> = {
           name: {
             value: prompt.name || `Prompt ${index + 1}`,
@@ -375,7 +375,7 @@ export class ReportGenerator {
             value: elementContent,
             formatted_value: isEmpty ? '-' : elementContent,
             is_empty: isEmpty,
-            confidence: prompt.qualityMetrics?.overallConfidence
+            confidence: prompt.qualityMetrics?.overallConfidence || 0
           };
         });
 
@@ -404,7 +404,7 @@ export class ReportGenerator {
           }
         };
 
-        limitedPrompts.forEach((prompt, index) => {
+        limitedPrompts.forEach((prompt: AnalyzedPromptData, index: number) => {
           const elementContent = prompt.analysis[element] || '';
           const isEmpty = !elementContent || elementContent.trim().length === 0;
 
@@ -412,7 +412,7 @@ export class ReportGenerator {
             value: elementContent,
             formatted_value: isEmpty ? '-' : elementContent,
             is_empty: isEmpty,
-            confidence: prompt.qualityMetrics?.overallConfidence
+            confidence: prompt.qualityMetrics?.overallConfidence || 0
           };
         });
 
@@ -442,7 +442,9 @@ export class ReportGenerator {
       display_options: {
         ...DEFAULT_DISPLAY_OPTIONS,
         show_empty_cells: showEmptyCells,
-        highlight_missing: highlightMissing
+        highlight_missing: highlightMissing,
+        sort_by: DEFAULT_DISPLAY_OPTIONS.sort_by || 'name',
+        filter_by: DEFAULT_DISPLAY_OPTIONS.filter_by || {}
       },
       generated_timestamp: new Date().toISOString(),
       format: 'html'
@@ -478,7 +480,7 @@ export class ReportGenerator {
       outputFormat,
       outputPath,
       templateStyle = 'default',
-      includeMetadata = true,
+      // includeMetadata = true,
       customCSS
     } = options;
 
@@ -537,20 +539,16 @@ export class ReportGenerator {
 
       return {
         // 契约期望的字段
-        exportId: uuidv4(),
-        exportedAt: new Date().toISOString(),
+        // exportId: uuidv4(),
+        // exportedAt: new Date().toISOString(),
         success: true,
         format: outputFormat,
-        filePath: actualOutputPath,
-        processingTime,
+        // filePath: actualOutputPath,
+        // processingTime,
         
         // 额外字段
         outputPath: actualOutputPath,
-        outputFormat: outputFormat as OutputFormatType,
-        templateStyle: templateStyle,
-        includeMetadata: includeMetadata,
-        fileSizeBytes: fileSize,
-        mimeType: MIME_TYPE_MAPPING[outputFormat as keyof typeof MIME_TYPE_MAPPING],
+        // mimeType: MIME_TYPE_MAPPING[outputFormat as keyof typeof MIME_TYPE_MAPPING],
         fileSize,
         generationTime: processingTime
       };
@@ -630,11 +628,11 @@ export class ReportGenerator {
       totalComplexity += this.calculateComplexity(prompt);
     });
 
-    const analysisRate = prompts.filter(p => p.analysis).length / prompts.length;
+    // const analysisRate = prompts.filter(p => p.analysis).length / prompts.length;
 
     // 计算额外的统计信息
-    const highQuality = prompts.filter(p => p.qualityMetrics?.overallConfidence && p.qualityMetrics.overallConfidence > 0.8).length;
-    const avgConfidence = prompts.reduce((sum, p) => sum + (p.qualityMetrics?.overallConfidence || 0), 0) / prompts.length;
+    // const highQuality = prompts.filter(p => p.qualityMetrics?.overallConfidence && p.qualityMetrics.overallConfidence > 0.8).length;
+    // const avgConfidence = prompts.reduce((sum, p) => sum + (p.qualityMetrics?.overallConfidence || 0), 0) / prompts.length;
     
     // 查找缺失最多的要素
     const elementMissing: Record<string, number> = {};
@@ -648,20 +646,19 @@ export class ReportGenerator {
       }
     });
     
-    const topMissing = Object.entries(elementMissing)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([element, count]) => ({ element, missingCount: count }));
+    // const topMissing = Object.entries(elementMissing)
+    //   .sort((a, b) => b[1] - a[1])
+    //   .slice(0, 3)
+    //   .map(([element, count]) => ({ element, missingCount: count }));
     
     return {
-      totalPrompts: prompts.length,
-      totalFiles: uniqueFiles.size,
-      averageConfidence: avgConfidence,
-      highQualityPrompts: highQuality,
-      averageCompleteness: analysisRate,
-      languageDistribution: languageCount,
-      categoryDistribution: categoryCount,
-      topMissingElements: topMissing
+      total_prompts: prompts.length,
+      total_files: uniqueFiles.size,
+      analysis_coverage: prompts.filter(p => p.analysis).length / prompts.length,
+      average_complexity: totalComplexity / prompts.length,
+      language_distribution: languageCount,
+      category_distribution: categoryCount,
+      file_type_distribution: {} // Add empty file type distribution
     };
   }
 
@@ -838,7 +835,7 @@ export class ReportGenerator {
   }
 
   // 格式化方法
-  private generateHTMLReport(report: AnalysisReport, style: string, customCSS?: string): string {
+  private generateHTMLReport(report: AnalysisReport, _style: string, customCSS?: string): string {
     const css = customCSS || this.getDefaultCSS();
     
     return `
@@ -898,6 +895,7 @@ ${report.comparison_tables.map(table => this.generateMarkdownTable(table)).join(
 
     // 使用第一个表格生成CSV
     const table = report.comparison_tables[0];
+    if (!table) return '';
     const headers = table.columns.map(col => col.column_title).join(',');
     const rows = table.rows.map(row => 
       table.columns.map(col => {
@@ -989,29 +987,29 @@ body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
     return Math.min(complexity, 10);
   }
 
-  private findTopMissingElements(prompts: AnalyzedPromptData[]): string[] {
-    const elementMissingCount: Record<string, number> = {};
-    const elements = [
-      '所在文件', '角色能力', '任务请求', '背景情境', '指令行动',
-      '输入格式', '输出规格', '示例', '限制约束', '目标期望',
-      '信息', '评估优化', '调整', '受众', '风格要求'
-    ];
+  // private findTopMissingElements(prompts: AnalyzedPromptData[]): string[] {
+  //   const elementMissingCount: Record<string, number> = {};
+  //   const elements = [
+  //     '所在文件', '角色能力', '任务请求', '背景情境', '指令行动',
+  //     '输入格式', '输出规格', '示例', '限制约束', '目标期望',
+  //     '信息', '评估优化', '调整', '受众', '风格要求'
+  //   ];
 
-    prompts.forEach(prompt => {
-      elements.forEach(element => {
-        const key = element as keyof AnalysisElements;
-        if (!prompt.analysis[key] || prompt.analysis[key].trim().length === 0) {
-          elementMissingCount[element] = (elementMissingCount[element] || 0) + 1;
-        }
-      });
-    });
+  //   prompts.forEach(prompt => {
+  //     elements.forEach(element => {
+  //       const key = element as keyof AnalysisElements;
+  //       if (!prompt.analysis[key] || prompt.analysis[key].trim().length === 0) {
+  //         elementMissingCount[element] = (elementMissingCount[element] || 0) + 1;
+  //       }
+  //     });
+  //   });
 
-    // 排序并返回前5个最常缺失的要素
-    return Object.entries(elementMissingCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([element]) => element);
-  }
+  //   // 排序并返回前5个最常缺失的要素
+  //   return Object.entries(elementMissingCount)
+  //     .sort((a, b) => b[1] - a[1])
+  //     .slice(0, 5)
+  //     .map(([element]) => element);
+  // }
 
   private findCommonPatterns(prompts: AnalyzedPromptData[], element: keyof AnalysisElements): string[] {
     const patterns: Record<string, number> = {};

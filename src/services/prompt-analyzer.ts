@@ -8,15 +8,15 @@ import {
   PromptAnalysis,
   AnalysisElements,
   QualityMetrics,
-  AnalysisMetadata,
-  CreateAnalysisParams,
+  // AnalysisMetadata,
+  // CreateAnalysisParams,
   ANALYSIS_ELEMENT_NAMES,
-  validatePromptAnalysis,
-  createDefaultAnalysisElements,
+  // validatePromptAnalysis,
+  // createDefaultAnalysisElements,
   generateDefaultQualityMetrics,
-  calculateElementCoverage,
+  // calculateElementCoverage,
 } from '@/models/prompt-analysis.js';
-import { UUID, Timestamp, AnalysisStatus, ConfidenceScore } from '@/models/common.js';
+import { /* UUID, Timestamp, */ AnalysisStatus, ConfidenceScore } from '@/models/common.js';
 
 // ============== 输入接口 ==============
 
@@ -197,9 +197,9 @@ export class PromptAnalyzer {
       model = 'qwen-plus',
       language = 'zh',
       analysisDepth = 'standard',
-      includeConfidence = true,
-      enableRetry = true,
-      retryCount = 2,
+      // includeConfidence = true,
+      // enableRetry = true,
+      // retryCount = 2,
       timeout = 45000,
       temperature = 0.3
     } = options;
@@ -486,7 +486,7 @@ export class PromptAnalyzer {
     const { promptId, retryOptions = {} } = params;
 
     const {
-      retryReason = 'Manual retry requested',
+      // retryReason = 'Manual retry requested',
       useAlternativeModel = true,
       adjustedSettings = {}
     } = retryOptions;
@@ -551,7 +551,7 @@ export class PromptAnalyzer {
   /**
    * 执行实际的AI分析
    */
-  private async performAnalysis(prompt: PromptInput, options: any): Promise<AnalysisElements> {
+  private async performAnalysis(prompt: PromptInput, _options: any): Promise<AnalysisElements> {
     // 模拟AI分析过程（减少延迟以避免测试超时）
     await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
 

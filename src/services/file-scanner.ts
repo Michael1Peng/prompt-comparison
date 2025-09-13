@@ -8,8 +8,8 @@ import { join, relative, extname, basename } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import ignore from 'ignore';
 
-import { FileMetadata, createFileMetadata } from '@/models/file-metadata.js';
-import { PromptContent } from '@/models/prompt-content.js';
+// import { FileMetadata, createFileMetadata } from '@/models/file-metadata.js';
+// import { PromptContent } from '@/models/prompt-content.js';
 
 // ============== 输入接口 ==============
 
@@ -192,9 +192,9 @@ export class FileScanner {
       extensions = ['.md', '.txt', '.js', '.ts', '.py', '.yaml', '.yml'],
       ignorePatterns = ['node_modules/**', '.git/**', '*.log'],
       maxFileSize = 5 * 1024 * 1024, // 5MB
-      concurrency = 10,
+      // concurrency = 10,
       timeout = 300000, // 5分钟
-      respectGitignore = true
+      // respectGitignore = true
     } = options;
 
     // 验证路径
@@ -223,7 +223,7 @@ export class FileScanner {
       size: number;
     }> = [];
     const errors: Array<{ filePath: string; error: string }> = [];
-    let totalFiles = 0;
+    // let totalFiles = 0;
 
     // 实现超时控制
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -296,11 +296,11 @@ export class FileScanner {
     
     const {
       aiProvider = 'qwen',
-      model = 'qwen-plus',
+      // model = 'qwen-plus',
       batchSize = 5,
-      confidenceThreshold = 0.7,
-      retryCount = 2,
-      timeout = 30000
+      confidenceThreshold = 0.7
+      // retryCount = 2,
+      // timeout = 30000
     } = options;
 
     // 验证批处理大小
@@ -397,9 +397,9 @@ export class FileScanner {
   async extractPromptContent(params: ExtractPromptContentParams): Promise<ExtractPromptContentResult> {
     const { file, options = {} } = params;
     const {
-      includeContext = true,
-      contextLines = 5,
-      preserveFormatting = true,
+      // includeContext = true,
+      // contextLines = 5,
+      // preserveFormatting = true,
       extractionMode = 'automatic'
     } = options;
 
@@ -586,14 +586,14 @@ export class FileScanner {
       const line = lines[i];
       
       // 检查是否是提示词开始的行
-      if (!inPrompt && this.isPromptStart(line)) {
+      if (!inPrompt && this.isPromptStart(line || '')) {
         inPrompt = true;
         startLine = i + 1;
-        currentPrompt = line;
+        currentPrompt = line || '';
       } else if (inPrompt) {
         // 检查是否是提示词结束
-        if (this.isPromptEnd(line, i, lines)) {
-          currentPrompt += '\n' + line;
+        if (this.isPromptEnd(line || '', i, lines)) {
+          currentPrompt += '\n' + (line || '');
           
           if (currentPrompt.trim().length > 50) { // 最少50个字符
             prompts.push({
@@ -607,7 +607,7 @@ export class FileScanner {
           inPrompt = false;
           currentPrompt = '';
         } else {
-          currentPrompt += '\n' + line;
+          currentPrompt += '\n' + (line || '');
         }
       }
     }
