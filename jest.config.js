@@ -2,13 +2,15 @@ export default {
   // 测试环境
   testEnvironment: 'node',
   
-  // 支持 ES modules 
-  transform: {},
-  
-  // 测试文件匹配模式
+  // 测试文件匹配模式 - 只匹配我们的测试
   testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.spec.js'
+    '**/tests/**/*.test.js'
+  ],
+  
+  // 忽略 RooCodeInc 目录中的测试
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/RooCodeInc/'
   ],
   
   // 覆盖率配置
@@ -29,9 +31,6 @@ export default {
   // 清理模拟
   clearMocks: true,
   
-  // 安装文件
-  setupFilesAfterEnv: [],
-  
   // 详细输出
   verbose: true,
   
@@ -39,6 +38,7 @@ export default {
   watchPathIgnorePatterns: [
     'node_modules',
     'coverage',
-    'analysis'
+    'analysis',
+    'RooCodeInc'
   ]
 };
