@@ -42,7 +42,7 @@
 - [x] T008 [P] Unit test for output generator in tests/unit/test_output_generator.test.js (2 test cases)
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T009 [P] PromptFile and ScanResult data models in src/models/data_models.js
+- [x] T009 [P] PromptFile and ScanResult data models in src/models/data_models.js
 - [ ] T010 [P] File scanner service with .gitignore support in src/services/file_scanner.js
 - [ ] T011 [P] AI analyzer service with GPT-5 integration in src/services/ai_analyzer.js
 - [ ] T012 [P] Output generator service for JSON output in src/services/output_generator.js
