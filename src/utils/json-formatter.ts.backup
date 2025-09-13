@@ -1,0 +1,535 @@
+/**
+ * T024: JSON Formatter Implementation
+ *
+ * 🟢 GREEN Phase: Implements JSON output formatting and validation
+ * Handles structured data serialization with schema validation
+ */
+
+import { PromptElements, AnalysisReport, ProcessingLog } from '../models';
+
+/**
+ * JSON formatting options
+ */
+export interface JsonFormatOptions {
+  indent?: number | string;      // Indentation level or string
+  sortKeys?: boolean;           // Sort object keys alphabetically
+  includeMetadata?: boolean;    // Include metadata fields
+  excludeFields?: string[];     // Fields to exclude from output
+  dateFormat?: 'iso' | 'unix' | 'human'; // Date serialization format
+  precision?: number;           // Decimal precision for numbers
+}
+
+/**
+ * Schema validation result
+ */
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  schema: string;
+}
+
+/**
+ * JSONFormatter utility for structured data output
+ */
+export class JSONFormatter {
+  private readonly DEFAULT_OPTIONS: Required<JsonFormatOptions> = {
+    indent: 2,
+    sortKeys: false,
+    includeMetadata: true,
+    excludeFields: [],
+    dateFormat: 'iso',
+    precision: 3
+  };
+
+  /**
+   * Format PromptElements to JSON
+   */
+  formatPromptElements(
+    elements: PromptElements,
+    options: JsonFormatOptions = {}
+  ): string {
+    const opts = { ...this.DEFAULT_OPTIONS, ...options };
+    const formatted = this._processObject(elements, opts);
+    return JSON.stringify(formatted, null, opts.indent);
+  }
+
+  /**
+   * Format AnalysisReport to JSON
+   */
+  formatAnalysisReport(
+    report: AnalysisReport,
+    options: JsonFormatOptions = {}
+  ): string {
+    const opts = { ...this.DEFAULT_OPTIONS, ...options };
+    const formatted = this._processObject(report, opts);
+    return JSON.stringify(formatted, null, opts.indent);
+  }
+
+  /**
+   * Format array of objects to JSON
+   */
+  formatArray<T>(
+    items: T[],
+    options: JsonFormatOptions = {}
+  ): string {
+    const opts = { ...this.DEFAULT_OPTIONS, ...options };
+    const formatted = items.map(item => this._processObject(item, opts));
+    return JSON.stringify(formatted, null, opts.indent);
+  }
+
+  /**
+   * Create compact JSON (single line, minimal spaces)
+   */
+  formatCompact(data: any): string {
+    return JSON.stringify(data, (key, value) => {
+      // Round numbers to avoid floating point issues
+      if (typeof value === 'number') {
+        return Math.round(value * 1000) / 1000;
+      }
+      return value;
+    });
+  }
+
+  /**
+   * Create pretty-printed JSON with custom formatting
+   */
+  formatPretty(
+    data: any,
+    options: JsonFormatOptions = {}
+  ): string {
+    const opts = { ...this.DEFAULT_OPTIONS, ...options };
+    const processed = this._processObject(data, opts);
+
+    // Custom replacer for pretty formatting
+    const replacer = opts.sortKeys ? this._createSortingReplacer() : null;
+
+    return JSON.stringify(processed, replacer, opts.indent);
+  }
+
+  /**
+   * Validate JSON against expected schema
+   */
+  validateSchema(
+    jsonString: string,
+    expectedType: 'PromptElements' | 'AnalysisReport' | 'ProcessingLog'
+  ): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    try {
+      const parsed = JSON.parse(jsonString);
+
+      switch (expectedType) {
+        case 'PromptElements':
+          this._validatePromptElements(parsed, errors, warnings);
+          break;
+        case 'AnalysisReport':
+          this._validateAnalysisReport(parsed, errors, warnings);
+          break;
+        case 'ProcessingLog':
+          this._validateProcessingLog(parsed, errors, warnings);
+          break;
+        default:
+          errors.push(`Unknown schema type: ${expectedType}`);
+      }
+    } catch (error: any) {
+      errors.push(`Invalid JSON: ${error.message}`);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      schema: expectedType
+    };
+  }
+
+  /**
+   * Convert JSON to different formats
+   */
+  convertToFormat(
+    jsonData: any,
+    format: 'csv' | 'xml' | 'yaml',
+    options: { flattenNested?: boolean } = {}
+  ): string {
+    switch (format) {
+      case 'csv':
+        return this._convertToCSV(jsonData, options.flattenNested || false);
+      case 'xml':
+        return this._convertToXML(jsonData);
+      case 'yaml':
+        return this._convertToYAML(jsonData);
+      default:
+        throw new Error(`Unsupported format: ${format}`);
+    }
+  }
+
+  /**
+   * Merge multiple JSON objects with conflict resolution
+   */
+  mergeJsonObjects(
+    objects: any[],
+    conflictResolution: 'first' | 'last' | 'merge' = 'merge'
+  ): any {
+    if (objects.length === 0) return {};
+    if (objects.length === 1) return objects[0];
+
+    let result = {};
+
+    for (const obj of objects) {
+      if (typeof obj !== 'object' || obj === null) continue;
+
+      for (const [key, value] of Object.entries(obj)) {
+        if (!(key in result)) {
+          result[key] = value;
+        } else {
+          switch (conflictResolution) {
+            case 'first':
+              // Keep existing value
+              break;
+            case 'last':
+              result[key] = value;
+              break;
+            case 'merge':
+              if (typeof result[key] === 'object' && typeof value === 'object' &&
+                  !Array.isArray(result[key]) && !Array.isArray(value)) {
+                result[key] = this.mergeJsonObjects([result[key], value], 'merge');
+              } else {
+                result[key] = value;
+              }
+              break;
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Extract specific fields from JSON structure
+   */
+  extractFields(data: any, fieldPaths: string[]): any {
+    const result = {};
+
+    for (const path of fieldPaths) {
+      const value = this._getNestedValue(data, path);
+      if (value !== undefined) {
+        this._setNestedValue(result, path, value);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Process object according to formatting options
+   */
+  private _processObject(obj: any, options: Required<JsonFormatOptions>): any {
+    if (obj === null || typeof obj !== 'object') {
+      return this._processValue(obj, options);
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this._processObject(item, options));
+    }
+
+    const result: any = {};
+
+    // Get keys and optionally sort them
+    const keys = options.sortKeys ? Object.keys(obj).sort() : Object.keys(obj);
+
+    for (const key of keys) {
+      // Skip excluded fields
+      if (options.excludeFields.includes(key)) {
+        continue;
+      }
+
+      // Skip metadata if not included
+      if (!options.includeMetadata && this._isMetadataField(key)) {
+        continue;
+      }
+
+      result[key] = this._processObject(obj[key], options);
+    }
+
+    return result;
+  }
+
+  /**
+   * Process individual values according to options
+   */
+  private _processValue(value: any, options: Required<JsonFormatOptions>): any {
+    if (value instanceof Date) {
+      switch (options.dateFormat) {
+        case 'iso':
+          return value.toISOString();
+        case 'unix':
+          return Math.floor(value.getTime() / 1000);
+        case 'human':
+          return value.toLocaleString();
+        default:
+          return value.toISOString();
+      }
+    }
+
+    if (typeof value === 'number') {
+      return Number(value.toFixed(options.precision));
+    }
+
+    return value;
+  }
+
+  /**
+   * Check if field is metadata
+   */
+  private _isMetadataField(key: string): boolean {
+    const metadataFields = [
+      'scanTimestamp', 'analysisTimestamp', 'createdAt',
+      'lastModified', 'scanStatus', 'processingTime'
+    ];
+    return metadataFields.includes(key);
+  }
+
+  /**
+   * Create sorting replacer for JSON.stringify
+   */
+  private _createSortingReplacer() {
+    return function(key: string, value: any) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const sorted = {};
+        Object.keys(value).sort().forEach(k => {
+          sorted[k] = value[k];
+        });
+        return sorted;
+      }
+      return value;
+    };
+  }
+
+  /**
+   * Validate PromptElements structure
+   */
+  private _validatePromptElements(data: any, errors: string[], warnings: string[]): void {
+    const requiredFields = ['elementId', 'contentId', 'sourceFile'];
+    const elementFields = [
+      'roleAbility', 'taskRequest', 'contextSituation', 'instructionAction',
+      'outputSpec', 'examples', 'constraints', 'objectives',
+      'information', 'evaluation', 'adjustment', 'audience'
+    ];
+
+    // Check required fields
+    for (const field of requiredFields) {
+      if (!(field in data)) {
+        errors.push(`Missing required field: ${field}`);
+      }
+    }
+
+    // Check element structure
+    for (const field of elementFields) {
+      if (field in data && typeof data[field] === 'object') {
+        if (!('present' in data[field])) {
+          errors.push(`Element ${field} missing 'present' field`);
+        }
+        if (!('confidence' in data[field])) {
+          errors.push(`Element ${field} missing 'confidence' field`);
+        }
+      }
+    }
+
+    // Check data types
+    if (typeof data.completeness === 'number' && (data.completeness < 0 || data.completeness > 1)) {
+      warnings.push('Completeness should be between 0 and 1');
+    }
+  }
+
+  /**
+   * Validate AnalysisReport structure
+   */
+  private _validateAnalysisReport(data: any, errors: string[], warnings: string[]): void {
+    const requiredSections = ['reportId', 'scanSummary', 'contentSummary', 'elementSummary', 'performance'];
+
+    for (const section of requiredSections) {
+      if (!(section in data)) {
+        errors.push(`Missing required section: ${section}`);
+      }
+    }
+
+    // Validate data consistency
+    if (data.scanSummary && data.files) {
+      if (data.scanSummary.totalFiles !== data.files.length) {
+        warnings.push('scanSummary.totalFiles does not match files array length');
+      }
+    }
+  }
+
+  /**
+   * Validate ProcessingLog structure
+   */
+  private _validateProcessingLog(data: any, errors: string[], _warnings: string[]): void {
+    const requiredFields = ['logId', 'timestamp', 'level', 'source', 'message'];
+
+    for (const field of requiredFields) {
+      if (!(field in data)) {
+        errors.push(`Missing required field: ${field}`);
+      }
+    }
+
+    const validLevels = ['debug', 'info', 'warn', 'error', 'fatal'];
+    if (data.level && !validLevels.includes(data.level)) {
+      errors.push(`Invalid log level: ${data.level`);
+    }
+  }
+
+  /**
+   * Convert JSON to CSV format
+   */
+  private _convertToCSV(data: any, flatten: boolean): string {
+    if (!Array.isArray(data)) {
+      data = [data];
+    }
+
+    if (data.length === 0) return '';
+
+    // Flatten objects if requested
+    const processedData = flatten ? data.map(item => this._flattenObject(item)) : data;
+
+    // Get all unique keys
+    const allKeys = new Set<string>();
+    processedData.forEach(item => {
+      if (typeof item === 'object' && item !== null) {
+        Object.keys(item).forEach(key => allKeys.add(key));
+      }
+    });
+
+    const headers = Array.from(allKeys).sort();
+    const csvRows = [headers.join(',')];
+
+    processedData.forEach(item => {
+      const row = headers.map(header => {
+        const value = item[header];
+        if (value === undefined || value === null) return '';
+        if (typeof value === 'string') return `"${value.replace(/"/g, '""')}"`;
+        return String(value);
+      });
+      csvRows.push(row.join(','));
+    });
+
+    return csvRows.join('\n');
+  }
+
+  /**
+   * Convert JSON to XML format (simplified)
+   */
+  private _convertToXML(data: any, rootElement = 'root'): string {
+    const xmlParts = [`<${rootElement}>`];
+
+    const convertValue = (value: any, key: string): string => {
+      if (value === null || value === undefined) {
+        return `<${key}></${key}>`;
+      }
+      if (typeof value === 'object') {
+        if (Array.isArray(value)) {
+          return value.map(item => convertValue(item, key)).join('');
+        } else {
+          const innerXml = Object.entries(value)
+            .map(([k, v]) => convertValue(v, k))
+            .join('');
+          return `<${key}>${innerXml}</${key}>`;
+        }
+      } else {
+        return `<${key}>${String(value)}</${key}>`;
+      }
+    };
+
+    if (typeof data === 'object' && !Array.isArray(data)) {
+      Object.entries(data).forEach(([key, value]) => {
+        xmlParts.push(convertValue(value, key));
+      });
+    } else {
+      xmlParts.push(convertValue(data, 'item'));
+    }
+
+    xmlParts.push(`</${rootElement}>`);
+    return xmlParts.join('');
+  }
+
+  /**
+   * Convert JSON to YAML format (simplified)
+   */
+  private _convertToYAML(data: any, indent = 0): string {
+    const indentStr = '  '.repeat(indent);
+
+    if (data === null || data === undefined) {
+      return 'null';
+    }
+
+    if (typeof data === 'string') {
+      return `"${data.replace(/"/g, '\\"')}"`;
+    }
+
+    if (typeof data !== 'object') {
+      return String(data);
+    }
+
+    if (Array.isArray(data)) {
+      if (data.length === 0) return '[]';
+      return data.map(item => `${indentStr}- ${this._convertToYAML(item, indent + 1).trim()}`).join('\n');
+    }
+
+    const entries = Object.entries(data);
+    if (entries.length === 0) return '{}';
+
+    return entries
+      .map(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          return `${indentStr}${key}:\n${this._convertToYAML(value, indent + 1)}`;
+        } else {
+          return `${indentStr}${key}: ${this._convertToYAML(value, indent)}`;
+        }
+      })
+      .join('\n');
+  }
+
+  /**
+   * Flatten nested object structure
+   */
+  private _flattenObject(obj: any, prefix = '', separator = '.'): any {
+    const flattened = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      const newKey = prefix ? `${prefix}${separator}${key}` : key;
+
+      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        Object.assign(flattened, this._flattenObject(value, newKey, separator));
+      } else {
+        flattened[newKey] = value;
+      }
+    }
+
+    return flattened;
+  }
+
+  /**
+   * Get nested value by path
+   */
+  private _getNestedValue(obj: any, path: string): any {
+    return path.split('.').reduce((current, key) => current?.[key], obj);
+  }
+
+  /**
+   * Set nested value by path
+   */
+  private _setNestedValue(obj: any, path: string, value: any): void {
+    const keys = path.split('.');
+    const lastKey = keys.pop();
+    if (lastKey === undefined) return;
+    
+    const target = keys.reduce((current, key) => {
+      if (!current[key]) current[key] = {};
+      return current[key];
+    }, obj);
+    target[lastKey] = value;
+  }
+}
