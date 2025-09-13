@@ -62,12 +62,12 @@
 - Library docs: 是，计划llms.txt格式
 
 **Testing (NON-NEGOTIABLE)**:
-- RED-GREEN-Refactor cycle enforced? 是
-- Git commits show tests before implementation? 将确保
-- Order: Contract→Integration→E2E→Unit strictly followed? 是
-- Real dependencies used? 是 (真实API调用，真实文件系统)
-- Integration tests for: 新库、AI API集成、JSON输出格式
-- FORBIDDEN: Implementation before test, skipping RED phase
+- RED-GREEN-Refactor cycle enforced? ✅ 严格执行，33个子任务每个都遵循
+- Git commits show tests before implementation? ✅ 强制要求🔴→🟢→🔵提交顺序
+- Order: Contract→Integration→E2E→Unit strictly followed? ✅ 已在任务序列中体现
+- Real dependencies used? ✅ 真实API调用、真实文件系统、真实GPT-5集成
+- Integration tests for: ✅ 核心库集成、API集成、端到端工作流、性能基准
+- FORBIDDEN: ❌ 绝对禁止：实现先于测试、跳过RED阶段、测试造假
 
 **Observability**:
 - Structured logging included? 是
@@ -158,58 +158,367 @@ tests/
 
 ✅ **策略定义完成** - 此阶段由/tasks命令执行
 
-### Task Generation Strategy:
-从Phase 1设计文档自动生成任务序列：
+### Task Generation Strategy: TDD驱动的开发序列
 
-**核心库任务** (并行执行标记[P]):
-1. **file-scanner库** [P]
-   - 递归目录遍历
-   - 文件类型检测
-   - 大文件处理策略
+基于TDD红-绿-重构循环，每个功能都遵循 **测试先行 → 实现 → 重构** 的严格顺序：
 
-2. **prompt-detector库** [P]
-   - GPT-5集成
-   - 二进制内容过滤
-   - 置信度评分
+#### 第一阶段：核心库TDD开发 [可并行]
 
-3. **element-analyzer库** [P]
-   - 13要素提取模板
-   - 结构化JSON输出
-   - 质量评估算法
-
-4. **report-generator库** [P]
-   - 数据聚合和统计
-   - JSON报告格式化
-   - CSV导出功能
-
-**集成任务** (依赖顺序):
-5. CLI框架搭建 (commander.js)
-6. 配置文件处理
-7. 错误处理和日志
-8. 进度跟踪UI
-9. 端到端集成
-
-**测试任务** (TDD红绿重构):
-10. 契约测试套件 (每个API)
-11. 集成测试 (真实文件+API)
-12. 性能基准测试
-13. 端到端验收测试
-
-### Ordering Strategy:
-- **P1**: 并行开发核心库 (任务1-4)
-- **P2**: 串行集成 (任务5-9)
-- **P3**: 测试驱动验证 (任务10-13)
-
-### Estimated Output:
-13个详细任务，预计开发时间2-3天
-
-**任务模板示例**:
+**1. file-scanner库开发循环**
 ```
-Task 1: 实现file-scanner库 [P]
-- TDD: 编写契约测试
-- 实现: 异步目录遍历
-- 验证: 处理1000+文件基准
-- 集成: CLI接口暴露
+1.1 🔴 编写file-scanner契约测试 (RED)
+    - 测试目录遍历API契约
+    - 测试文件过滤规则
+    - 测试大文件处理边界
+    ⏱️ 预计：30分钟
+
+1.2 🟢 实现file-scanner核心功能 (GREEN)
+    - 实现异步目录遍历
+    - 实现文件类型检测
+    - 实现大文件处理策略
+    ⏱️ 预计：2小时
+
+1.3 🔵 重构file-scanner代码 (REFACTOR)
+    - 优化内存使用
+    - 提取公共函数
+    - 添加错误处理
+    ⏱️ 预计：30分钟
+```
+
+**2. prompt-detector库开发循环**
+```
+2.1 🔴 编写prompt-detector契约测试 (RED)
+    - 测试GPT-5 API集成
+    - 测试提示词识别准确率
+    - 测试置信度评分算法
+    - 测试重试机制
+    ⏱️ 预计：45分钟
+
+2.2 🟢 实现prompt-detector核心功能 (GREEN)
+    - 集成OpenAI SDK
+    - 实现二进制内容过滤
+    - 实现置信度评分
+    - 实现API限流和重试
+    ⏱️ 预计：3小时
+
+2.3 🔵 重构prompt-detector代码 (REFACTOR)
+    - 优化API调用效率
+    - 抽象prompt模板
+    - 改进错误处理
+    ⏱️ 预计：45分钟
+```
+
+**3. element-analyzer库开发循环**
+```
+3.1 🔴 编写element-analyzer契约测试 (RED)
+    - 测试13要素提取API
+    - 测试JSON输出格式验证
+    - 测试质量评估算法
+    - 测试边缘情况处理
+    ⏱️ 预计：60分钟
+
+3.2 🟢 实现element-analyzer核心功能 (GREEN)
+    - 实现13要素提取模板
+    - 实现结构化JSON输出
+    - 实现质量评估算法
+    - 实现Zod数据验证
+    ⏱️ 预计：4小时
+
+3.3 🔵 重构element-analyzer代码 (REFACTOR)
+    - 优化要素识别准确率
+    - 重构prompt模板设计
+    - 提升性能和可维护性
+    ⏱️ 预计：60分钟
+```
+
+**4. report-generator库开发循环**
+```
+4.1 🔴 编写report-generator契约测试 (RED)
+    - 测试数据聚合逻辑
+    - 测试JSON报告格式
+    - 测试CSV导出功能
+    - 测试统计计算准确性
+    ⏱️ 预计：45分钟
+
+4.2 🟢 实现report-generator核心功能 (GREEN)
+    - 实现数据聚合和统计
+    - 实现JSON报告格式化
+    - 实现CSV导出功能
+    - 实现报告模板系统
+    ⏱️ 预计：2.5小时
+
+4.3 🔵 重构report-generator代码 (REFACTOR)
+    - 优化大数据处理性能
+    - 重构报告模板
+    - 改进输出格式
+    ⏱️ 预计：45分钟
+```
+
+#### 第二阶段：集成层TDD开发 [依赖顺序]
+
+**5. CLI框架TDD开发**
+```
+5.1 🔴 编写CLI接口契约测试 (RED)
+    - 测试commander.js集成
+    - 测试参数解析和验证
+    - 测试子命令路由
+    ⏱️ 预计：30分钟
+
+5.2 🟢 实现CLI框架 (GREEN)
+    - 集成commander.js
+    - 实现参数解析
+    - 实现子命令系统
+    ⏱️ 预计：1.5小时
+
+5.3 🔵 重构CLI代码 (REFACTOR)
+    - 优化用户体验
+    - 改进帮助文档
+    ⏱️ 预计：30分钟
+```
+
+**6. 配置系统TDD开发**
+```
+6.1 🔴 编写配置系统契约测试 (RED)
+    - 测试配置文件加载
+    - 测试环境变量处理
+    - 测试配置验证
+    ⏱️ 预计：30分钟
+
+6.2 🟢 实现配置系统 (GREEN)
+    - 实现配置文件处理
+    - 实现环境变量集成
+    - 实现配置验证和默认值
+    ⏱️ 预计：1小时
+
+6.3 🔵 重构配置代码 (REFACTOR)
+    - 优化配置加载性能
+    - 改进配置验证逻辑
+    ⏱️ 预计：30分钟
+```
+
+**7. 错误处理和日志TDD开发**
+```
+7.1 🔴 编写错误处理契约测试 (RED)
+    - 测试结构化日志输出
+    - 测试错误分类和处理
+    - 测试日志轮转机制
+    ⏱️ 预计：45分钟
+
+7.2 🟢 实现错误处理和日志 (GREEN)
+    - 实现结构化日志系统
+    - 实现错误分类和上下文
+    - 实现日志文件管理
+    ⏱️ 预计：2小时
+
+7.3 🔵 重构错误处理代码 (REFACTOR)
+    - 优化日志性能
+    - 改进错误消息质量
+    ⏱️ 预计：30分钟
+```
+
+**8. 进度跟踪UI TDD开发**
+```
+8.1 🔴 编写进度跟踪契约测试 (RED)
+    - 测试进度条显示
+    - 测试状态更新机制
+    - 测试用户交互响应
+    ⏱️ 预计：30分钟
+
+8.2 🟢 实现进度跟踪UI (GREEN)
+    - 实现终端进度条
+    - 实现实时状态更新
+    - 实现用户友好的消息
+    ⏱️ 预计：1.5小时
+
+8.3 🔵 重构进度跟踪代码 (REFACTOR)
+    - 优化显示性能
+    - 改进用户体验
+    ⏱️ 预计：30分钟
+```
+
+#### 第三阶段：集成测试和验收 [顺序执行]
+
+**9. 端到端集成TDD验证**
+```
+9.1 🔴 编写端到端集成测试 (RED)
+    - 测试完整工作流程
+    - 测试真实文件处理
+    - 测试API集成稳定性
+    ⏱️ 预计：60分钟
+
+9.2 🟢 实现端到端集成 (GREEN)
+    - 集成所有库和CLI
+    - 实现完整数据流
+    - 解决集成问题
+    ⏱️ 预计：2小时
+
+9.3 🔵 重构集成代码 (REFACTOR)
+    - 优化整体性能
+    - 改进错误恢复
+    ⏱️ 预计：45分钟
+```
+
+**10. 性能基准TDD验证**
+```
+10.1 🔴 编写性能基准测试 (RED)
+     - 测试1000+文件处理性能
+     - 测试内存使用限制
+     - 测试API调用效率
+     ⏱️ 预计：45分钟
+
+10.2 🟢 达成性能基准 (GREEN)
+     - 优化文件处理性能
+     - 优化内存使用
+     - 优化API调用策略
+     ⏱️ 预计：3小时
+
+10.3 🔵 重构性能优化 (REFACTOR)
+     - 细化性能监控
+     - 改进资源管理
+     ⏱️ 预计：60分钟
+```
+
+**11. 用户验收TDD验证**
+```
+11.1 🔴 编写用户验收测试 (RED)
+     - 测试quickstart.md场景
+     - 测试常见用例覆盖
+     - 测试错误恢复能力
+     ⏱️ 预计：45分钟
+
+11.2 🟢 通过用户验收 (GREEN)
+     - 修复用户体验问题
+     - 完善文档和帮助
+     - 确保功能完整性
+     ⏱️ 预计：2小时
+
+11.3 🔵 重构用户体验 (REFACTOR)
+     - 优化CLI交互设计
+     - 改进错误提示质量
+     ⏱️ 预计：45分钟
+```
+
+### TDD执行策略和质量门控
+
+#### 并行执行策略:
+- **第一阶段**: 4个核心库可完全并行开发 (任务1-4)
+- **第二阶段**: 集成层按依赖顺序串行 (任务5-8)
+- **第三阶段**: 验收测试顺序执行 (任务9-11)
+
+#### TDD质量门控:
+```
+每个子任务必须通过以下门控：
+
+🔴 RED阶段门控:
+  ✅ 测试必须失败 (确保测试有效)
+  ✅ 测试覆盖所有契约要求
+  ✅ 测试包含边缘情况
+  ✅ 错误消息清晰明确
+
+🟢 GREEN阶段门控:
+  ✅ 所有测试必须通过
+  ✅ 代码覆盖率 >= 90%
+  ✅ 无重复代码 (DRY原则)
+  ✅ 满足性能基准要求
+
+🔵 REFACTOR阶段门控:
+  ✅ 测试仍然全部通过
+  ✅ 代码可读性提升
+  ✅ 遵循SOLID原则
+  ✅ 文档和注释完整
+```
+
+#### Git提交策略 (证明TDD):
+```
+对于每个功能，必须按顺序提交：
+
+Commit 1: "🔴 Add failing tests for [feature]"
+  - 只包含测试文件
+  - 所有测试失败
+  - 提交消息包含 🔴 标记
+
+Commit 2: "🟢 Implement [feature] to pass tests"
+  - 包含最小实现代码
+  - 所有测试通过
+  - 提交消息包含 🟢 标记
+
+Commit 3: "🔵 Refactor [feature] for better design"
+  - 重构后的优化代码
+  - 测试仍然通过
+  - 提交消息包含 🔵 标记
+```
+
+### 预计时间和资源分配
+
+#### 总体时间估算:
+- **第一阶段** (并行): 最长路径4小时 (element-analyzer)
+- **第二阶段** (串行): 累计6.5小时
+- **第三阶段** (串行): 累计6.5小时
+- **总计**: ~17小时 (约2-3工作日)
+
+#### 详细时间分解:
+```
+核心库开发 (并行最大值):
+- file-scanner:      3小时
+- prompt-detector:   4.5小时  ← 关键路径
+- element-analyzer:  6小时    ← 关键路径
+- report-generator:  4小时
+
+集成层开发 (串行累计):
+- CLI框架:          2.5小时
+- 配置系统:         2小时
+- 错误处理:         3小时
+- 进度跟踪:         2.5小时
+
+验收测试 (串行累计):
+- 端到端集成:       3.75小时
+- 性能基准:         5.75小时
+- 用户验收:         3.5小时
+```
+
+#### 风险缓解策略:
+- **API限流风险**: element-analyzer预留额外1小时调试时间
+- **性能调优风险**: 性能基准预留额外2小时优化时间
+- **集成问题风险**: 端到端集成预留额外1小时故障排除
+
+### 任务输出格式 (33个子任务)
+
+每个子任务将生成为独立的可追踪任务：
+
+**示例任务格式**:
+```
+Task 1.1: 🔴 编写file-scanner契约测试 [RED]
+Priority: P1 | Parallel: Yes | Estimated: 30min
+Prerequisites: Phase 1设计文档
+Acceptance Criteria:
+- [ ] 目录遍历API测试失败
+- [ ] 文件过滤规则测试失败
+- [ ] 大文件边界测试失败
+- [ ] 错误处理测试失败
+Quality Gates: 测试失败证明、覆盖率检查
+Git Strategy: 提交仅包含测试文件
+
+Task 1.2: 🟢 实现file-scanner核心功能 [GREEN]
+Priority: P1 | Parallel: Yes | Estimated: 2h
+Prerequisites: Task 1.1完成
+Acceptance Criteria:
+- [ ] 所有Task 1.1测试通过
+- [ ] 异步目录遍历实现
+- [ ] 文件类型检测实现
+- [ ] 大文件处理策略实现
+Quality Gates: 测试通过、覆盖率>=90%
+Git Strategy: 最小实现，测试全部通过
+
+Task 1.3: 🔵 重构file-scanner代码 [REFACTOR]
+Priority: P1 | Parallel: Yes | Estimated: 30min
+Prerequisites: Task 1.2完成
+Acceptance Criteria:
+- [ ] 测试仍然全部通过
+- [ ] 内存使用优化
+- [ ] 代码重复消除
+- [ ] 错误处理改进
+Quality Gates: 测试稳定、代码质量提升
+Git Strategy: 重构提交，测试保持绿色
 ```
 
 ## Complexity Tracking
@@ -225,18 +534,68 @@ Task 1: 实现file-scanner库 [P]
 **Phase Status**:
 - [x] Phase 0: Research complete (research.md)
 - [x] Phase 1: Design complete (data-model.md, contracts/, quickstart.md)
-- [x] Phase 2: Task planning approach defined
-- [ ] Phase 3: Tasks generated (/tasks command)
-- [ ] Phase 4: Implementation complete
-- [ ] Phase 5: Validation passed
+- [x] Phase 2: TDD task planning complete (33个子任务定义)
+- [ ] Phase 3: Tasks generated (/tasks command → tasks.md)
+- [ ] Phase 4: TDD implementation complete (17小时预估)
+- [ ] Phase 5: Validation passed (性能+用户验收)
 
-**Gate Status**:
+**TDD Compliance Status**:
+- [x] RED-GREEN-Refactor 强制执行策略 ✅
+- [x] Git提交策略定义 (🔴→🟢→🔵标记)
+- [x] 质量门控检查点设置
+- [x] 33个子任务TDD流程设计
+- [x] 测试覆盖率要求 (≥90%)
+- [x] 真实依赖集成测试计划
+
+**Constitution Gate Status**:
 - [x] Initial Constitution Check: PASS (简单架构)
 - [x] Post-Design Constitution Check: PASS (4库设计)
+- [x] TDD Requirements Check: PASS ✅ (严格TDD流程)
 - [x] All NEEDS CLARIFICATION resolved (research.md)
 - [x] No complexity deviations required
 
-**Ready for**: `/tasks` 命令生成具体实现任务
+**Ready for**: `/tasks` 命令生成33个TDD子任务详细规格
+
+## TDD验证总结
+
+### 🔴 RED-GREEN-REFACTOR 保证
+
+每个功能的开发都严格遵循TDD三阶段循环：
+
+1. **🔴 RED (测试先行)**：
+   - 编写失败的测试，证明功能不存在
+   - 确保测试覆盖所有契约要求
+   - Git提交只包含测试文件
+
+2. **🟢 GREEN (最小实现)**：
+   - 编写最少代码使测试通过
+   - 达到90%+代码覆盖率要求
+   - Git提交包含功能实现代码
+
+3. **🔵 REFACTOR (质量优化)**：
+   - 在测试保护下改进代码质量
+   - 遵循SOLID原则和最佳实践
+   - Git提交包含重构后的代码
+
+### 📊 TDD指标和追踪
+
+- **总任务数**: 33个子任务 (11个功能 × 3个TDD阶段)
+- **预计时间**: 17小时 (~2-3工作日)
+- **质量要求**: 90%+测试覆盖率，100%功能契约通过
+- **Git提交**: 99个TDD提交 (每个子任务3个提交)
+
+### 🛡️ 质量保证机制
+
+- **自动化门控**: 每个阶段都有明确的验收标准
+- **真实集成**: 使用真实API、文件系统、数据库
+- **性能基准**: 1000+文件处理、<500MB内存使用
+- **用户验收**: quickstart.md场景全覆盖
+
+这种严格的TDD流程确保了：
+- ✅ 高质量代码（测试驱动设计）
+- ✅ 完整功能覆盖（契约测试保证）
+- ✅ 可维护性（重构阶段优化）
+- ✅ 文档化进度（Git历史证明）
 
 ---
-*Plan完成 - 基于Constitution v2.1.1原则 | 所有设计文档已生成*
+*TDD-Plan完成 - 严格遵循Constitution v2.1.1测试要求 | 33个子任务TDD流程就绪*
