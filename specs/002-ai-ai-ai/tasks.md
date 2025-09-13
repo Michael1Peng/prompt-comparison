@@ -43,7 +43,7 @@
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
 - [x] T009 [P] PromptFile and ScanResult data models in src/models/data_models.js
-- [ ] T010 [P] File scanner service with .gitignore support in src/services/file_scanner.js
+- [x] T010 [P] File scanner service with .gitignore support in src/services/file_scanner.js
 - [ ] T011 [P] AI analyzer service with GPT-5 integration in src/services/ai_analyzer.js
 - [ ] T012 [P] Output generator service for JSON output in src/services/output_generator.js
 - [ ] T013 Main CLI entry point integrating all services in src/scan.js

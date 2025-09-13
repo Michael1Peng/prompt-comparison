@@ -2,6 +2,10 @@ export default {
   // 测试环境
   testEnvironment: 'node',
   
+  // ESM 支持
+  preset: null,
+  transform: {},
+  
   // 测试文件匹配模式 - 只匹配我们的测试
   testMatch: [
     '**/tests/**/*.test.js'
