@@ -31,6 +31,25 @@ export class PromptExtractor {
     // 路径配置
     this.inputPath = options.inputPath || 'analysis/prompt-files.json';
     this.outputPath = options.outputPath || 'analysis/prompt-list.json';
+    
+    // 错误处理配置
+    this.maxRetries = options.maxRetries || 3;
+    this.retryDelay = options.retryDelay || 1000; // 毫秒
+    this.continueOnError = options.continueOnError !== false; // 默认继续处理
+    
+    // 统计信息
+    this.statistics = {
+      startTime: null,
+      endTime: null,
+      totalFilesProcessed: 0,
+      totalPromptsExtracted: 0,
+      totalErrors: 0,
+      apiCallsCount: 0,
+      apiCallsSuccess: 0,
+      apiCallsFailed: 0,
+      retryCount: 0,
+      processingTimeMs: 0
+    };
   }
 
   /**
@@ -38,6 +57,8 @@ export class PromptExtractor {
    */
   async extract() {
     try {
+      // 初始化统计
+      this.statistics.startTime = Date.now();
       console.log('开始提示词提取...');
       
       // 1. 读取输入文件
@@ -58,8 +79,10 @@ export class PromptExtractor {
       
       // 3. 并发处理文件
       const promptFiles = inputData.scanResult.promptFiles;
+      this.statistics.totalFilesProcessed = promptFiles.length; // 设置总文件数
+      
       const processingPromises = promptFiles.map(file => 
-        this.limit(() => this.processFile(file, promptList))
+        this.limit(() => this.processFileWithRetry(file, promptList))
       );
       
       await Promise.all(processingPromises);
@@ -67,13 +90,29 @@ export class PromptExtractor {
       // 4. 生成输出文件
       await this.generateOutput(promptList);
       
+      // 更新统计
+      this.statistics.endTime = Date.now();
+      this.statistics.processingTimeMs = this.statistics.endTime - this.statistics.startTime;
+      this.statistics.totalPromptsExtracted = promptList.totalPrompts;
+      this.statistics.totalErrors = promptList.processingStats.failedFiles;
+      
+      // 输出详细统计
       console.log(`提取完成: ${promptList.totalPrompts}个提示词`);
       console.log(`成功: ${promptList.processingStats.successfulFiles}, 失败: ${promptList.processingStats.failedFiles}`);
+      this.printStatistics();
       
       return promptList;
       
     } catch (error) {
-      throw new Error(`提示词提取失败: ${error.message}`);
+      this.statistics.endTime = Date.now();
+      this.statistics.processingTimeMs = this.statistics.endTime - this.statistics.startTime;
+      
+      if (!this.continueOnError) {
+        throw new Error(`提示词提取失败: ${error.message}`);
+      }
+      
+      console.error(`提取过程中发生错误: ${error.message}`);
+      return null;
     }
   }
 
@@ -93,6 +132,34 @@ export class PromptExtractor {
     }
     
     return data;
+  }
+
+  /**
+   * 处理单个文件（带重试机制）
+   */
+  async processFileWithRetry(fileInfo, promptList) {
+    let lastError = null;
+    
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        await this.processFile(fileInfo, promptList);
+        return; // 成功则返回
+      } catch (error) {
+        lastError = error;
+        
+        if (attempt < this.maxRetries) {
+          this.statistics.retryCount++;
+          console.warn(`处理文件失败 ${fileInfo.filePath} (尝试 ${attempt}/${this.maxRetries}): ${error.message}`);
+          console.log(`等待 ${this.retryDelay}ms 后重试...`);
+          await this.delay(this.retryDelay);
+        }
+      }
+    }
+    
+    // 所有重试都失败
+    console.error(`处理文件最终失败 ${fileInfo.filePath}: ${lastError.message}`);
+    promptList.addError(fileInfo.filePath, lastError.message);
+    this.statistics.totalErrors++;
   }
 
   /**
@@ -125,8 +192,8 @@ export class PromptExtractor {
       promptList.markFileSuccess();
       
     } catch (error) {
-      console.warn(`处理文件失败 ${fileInfo.filePath}: ${error.message}`);
-      promptList.addError(fileInfo.filePath, error.message);
+      // 抛出错误以便重试机制处理
+      throw error;
     }
   }
 
@@ -183,6 +250,9 @@ export class PromptExtractor {
 文件内容:
 ${content}`;
 
+      // 更新API调用统计
+      this.statistics.apiCallsCount++;
+      
       const response = await this.openai.chat.completions.create({
         model: this.model,
         messages: [
@@ -193,6 +263,9 @@ ${content}`;
         response_format: { type: 'json_object' }
       });
 
+      // API调用成功
+      this.statistics.apiCallsSuccess++;
+      
       const result = JSON.parse(response.choices[0].message.content);
       
       // 如果没有找到提示词，返回空数组
@@ -223,7 +296,16 @@ ${content}`;
       return validatedPrompts;
       
     } catch (error) {
+      // API调用失败
+      this.statistics.apiCallsFailed++;
+      
       console.warn(`AI分析失败: ${error.message}`);
+      
+      // 如果是认证错误，不使用fallback
+      if (error.message.includes('401') || error.message.includes('API key')) {
+        throw error;
+      }
+      
       // 如果AI分析失败，返回简单的启发式结果
       return this.fallbackAnalysis(content);
     }
@@ -378,7 +460,7 @@ ${content}`;
       // 生成符合规格的JSON输出
       const outputData = promptList.toJSON();
       
-      // 确保输出包含所有必需字段
+      // 确保输出包含所有必需字段，包含统计信息
       const finalOutput = {
         totalFiles: outputData.totalFiles || 0,
         totalPrompts: outputData.totalPrompts || 0,
@@ -388,7 +470,8 @@ ${content}`;
           errors: []
         },
         analysisTime: outputData.analysisTime || new Date().toISOString(),
-        prompts: outputData.prompts || []
+        prompts: outputData.prompts || [],
+        statistics: this.getStatistics() // 添加统计信息
       };
       
       // 写入JSON文件
@@ -407,5 +490,95 @@ ${content}`;
     } catch (error) {
       throw new Error(`生成输出失败: ${error.message}`);
     }
+  }
+
+  /**
+   * 延迟函数
+   */
+  async delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 获取统计信息
+   */
+  getStatistics() {
+    return {
+      ...this.statistics,
+      processingTimeSec: this.statistics.processingTimeMs / 1000,
+      averageTimePerFile: this.statistics.totalFilesProcessed > 0 
+        ? this.statistics.processingTimeMs / this.statistics.totalFilesProcessed 
+        : 0,
+      apiSuccessRate: this.statistics.apiCallsCount > 0
+        ? (this.statistics.apiCallsSuccess / this.statistics.apiCallsCount) * 100
+        : 0
+    };
+  }
+
+  /**
+   * 打印统计信息
+   */
+  printStatistics() {
+    const stats = this.getStatistics();
+    console.log('\n📊 处理统计:');
+    console.log(`  处理时间: ${stats.processingTimeSec.toFixed(2)}秒`);
+    console.log(`  文件总数: ${stats.totalFilesProcessed}`);
+    console.log(`  提取提示词: ${stats.totalPromptsExtracted}`);
+    console.log(`  API调用: ${stats.apiCallsCount}次 (成功: ${stats.apiCallsSuccess}, 失败: ${stats.apiCallsFailed})`);
+    console.log(`  API成功率: ${stats.apiSuccessRate.toFixed(1)}%`);
+    console.log(`  重试次数: ${stats.retryCount}`);
+    console.log(`  错误总数: ${stats.totalErrors}`);
+    if (stats.totalFilesProcessed > 0) {
+      console.log(`  平均处理时间: ${stats.averageTimePerFile.toFixed(0)}ms/文件`);
+    }
+  }
+
+  /**
+   * 验证文件内容
+   */
+  validateFileContent(content, filePath) {
+    if (!content) {
+      throw new Error(`文件内容为空: ${filePath}`);
+    }
+    
+    // 检查文件大小限制（防止过大文件）
+    const maxSize = 1024 * 1024; // 1MB
+    if (content.length > maxSize) {
+      throw new Error(`文件过大 (${(content.length / 1024).toFixed(2)}KB): ${filePath}`);
+    }
+    
+    return true;
+  }
+
+  /**
+   * 处理批量错误
+   */
+  handleBatchErrors(errors, promptList) {
+    if (!this.continueOnError && errors.length > 0) {
+      throw new Error(`批量处理失败: ${errors.length}个错误`);
+    }
+    
+    errors.forEach(error => {
+      console.error(`错误: ${error.file} - ${error.message}`);
+      promptList.addError(error.file, error.message);
+    });
+  }
+
+  /**
+   * 重置统计信息
+   */
+  resetStatistics() {
+    this.statistics = {
+      startTime: null,
+      endTime: null,
+      totalFilesProcessed: 0,
+      totalPromptsExtracted: 0,
+      totalErrors: 0,
+      apiCallsCount: 0,
+      apiCallsSuccess: 0,
+      apiCallsFailed: 0,
+      retryCount: 0,
+      processingTimeMs: 0
+    };
   }
 }

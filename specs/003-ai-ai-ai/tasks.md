@@ -57,8 +57,8 @@
 - [x] T014 编写端到端集成测试在 tests/integration/test_extract_workflow.test.js
 
 ## Phase 3.8: 错误处理和统计
-- [ ] T015 实现错误处理和统计功能在 prompt_extractor.js
-- [ ] T016 编写集成测试验证错误处理在 tests/integration/test_error_handling.test.js
+- [x] T015 实现错误处理和统计功能在 prompt_extractor.js
+- [x] T016 编写集成测试验证错误处理在 tests/integration/test_error_handling.test.js
 
 ## Dependencies
 - Setup (T001-T002) 必须首先完成
