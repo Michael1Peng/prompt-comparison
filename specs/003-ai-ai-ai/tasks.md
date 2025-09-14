@@ -29,10 +29,10 @@
 - **[P]**: Can run in parallel (different files, no dependencies)
 - Include exact file paths in descriptions
 
-## Phase 3.1: Setup
-- [ ] T001 扩展现有项目结构：创建 src/services/content_extractor.js, src/services/prompt_reader.js, src/services/list_generator.js
-- [ ] T002 [P] 扩展数据模型：在 src/models/data_models.js 中添加 PromptDetail, PromptList 类
-- [ ] T003 [P] 创建CLI命令：src/extract.js 主入口文件
+## Phase 3.1: Setup ✅ ALL COMPLETED
+- [x] T001 扩展现有项目结构：创建 src/services/content_extractor.js, src/services/prompt_reader.js, src/services/list_generator.js
+- [x] T002 [P] 扩展数据模型：在 src/models/data_models.js 中添加 PromptDetail, PromptList 类
+- [x] T003 [P] 创建CLI命令：src/extract.js 主入口文件
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**

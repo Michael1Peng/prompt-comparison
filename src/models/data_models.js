@@ -170,3 +170,140 @@ export const PROMPT_CATEGORIES = [
 ];
 
 export const DEFAULT_OUTPUT_PATH = './analysis/prompt-files.json';
+
+/**
+ * 提示词详情对象
+ * 表示从文件中提取的具体提示词内容和位置信息
+ */
+export class PromptDetail {
+  constructor({
+    promptId,
+    sourceFile,
+    content,
+    startLine,
+    endLine
+  }) {
+    this.promptId = promptId;       // 提示词唯一标识符 (prompt_001, prompt_002...)
+    this.sourceFile = sourceFile;   // 来源文件路径
+    this.content = content;         // 提示词完整内容（保持原始格式）
+    this.startLine = startLine;     // 在文件中的起始行号 (0-based, 包含上下文)
+    this.endLine = endLine;         // 在文件中的结束行号 (0-based, 包含上下文)
+  }
+
+  /**
+   * 验证PromptDetail对象的有效性
+   */
+  isValid() {
+    return (
+      typeof this.promptId === 'string' &&
+      this.promptId.length > 0 &&
+      typeof this.sourceFile === 'string' &&
+      this.sourceFile.length > 0 &&
+      typeof this.content === 'string' &&
+      this.content.length > 0 &&
+      typeof this.startLine === 'number' &&
+      typeof this.endLine === 'number' &&
+      this.startLine >= 0 &&
+      this.endLine >= 0 &&
+      this.endLine >= this.startLine
+    );
+  }
+
+  /**
+   * 转换为JSON对象
+   */
+  toJSON() {
+    return {
+      promptId: this.promptId,
+      sourceFile: this.sourceFile,
+      content: this.content,
+      startLine: this.startLine,
+      endLine: this.endLine
+    };
+  }
+
+  /**
+   * 从JSON对象创建PromptDetail实例
+   */
+  static fromJSON(json) {
+    return new PromptDetail(json);
+  }
+}
+
+/**
+ * 提示词列表对象
+ * 包含提取的所有提示词详情和处理统计信息
+ */
+export class PromptList {
+  constructor({
+    totalFiles,
+    totalPrompts,
+    prompts = [],
+    analysisTime = null,
+    processingStats = {}
+  }) {
+    this.totalFiles = totalFiles;                         // 处理的文件总数
+    this.totalPrompts = totalPrompts;                     // 发现的提示词总数
+    this.prompts = prompts;                               // PromptDetail对象数组
+    this.analysisTime = analysisTime || new Date().toISOString(); // 分析时间戳 (ISO格式)
+    this.processingStats = {                              // 简单处理统计信息
+      successFiles: processingStats.successFiles || 0,   // 成功处理的文件数
+      failedFiles: processingStats.failedFiles || 0      // 处理失败的文件数
+    };
+  }
+
+  /**
+   * 验证PromptList对象的有效性
+   */
+  isValid() {
+    return (
+      typeof this.totalFiles === 'number' &&
+      this.totalFiles >= 0 &&
+      typeof this.totalPrompts === 'number' &&
+      this.totalPrompts >= 0 &&
+      Array.isArray(this.prompts) &&
+      this.prompts.every(prompt => prompt instanceof PromptDetail || prompt.hasOwnProperty('promptId')) &&
+      typeof this.analysisTime === 'string' &&
+      typeof this.processingStats === 'object' &&
+      typeof this.processingStats.successFiles === 'number' &&
+      typeof this.processingStats.failedFiles === 'number' &&
+      this.processingStats.successFiles >= 0 &&
+      this.processingStats.failedFiles >= 0
+    );
+  }
+
+  /**
+   * 转换为JSON对象
+   */
+  toJSON() {
+    return {
+      totalFiles: this.totalFiles,
+      totalPrompts: this.totalPrompts,
+      prompts: this.prompts.map(prompt => 
+        prompt instanceof PromptDetail ? prompt.toJSON() : prompt
+      ),
+      analysisTime: this.analysisTime,
+      processingStats: this.processingStats
+    };
+  }
+
+  /**
+   * 从JSON对象创建PromptList实例
+   */
+  static fromJSON(json) {
+    const prompts = json.prompts.map(promptData => 
+      promptData instanceof PromptDetail ? promptData : PromptDetail.fromJSON(promptData)
+    );
+    
+    return new PromptList({
+      totalFiles: json.totalFiles,
+      totalPrompts: json.totalPrompts,
+      prompts: prompts,
+      analysisTime: json.analysisTime,
+      processingStats: json.processingStats
+    });
+  }
+}
+
+// 新增常量定义
+export const DEFAULT_PROMPT_LIST_OUTPUT_PATH = './analysis/prompt-list.json';
