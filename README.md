@@ -4,9 +4,10 @@
 
 ## 🎯 项目概述
 
-本项目提供两个核心工具：
+本项目提供三个核心工具：
 1. **扫描工具 (scan.js)** - 识别仓库中包含AI提示词的文件
 2. **提取工具 (extract.js)** - 深度分析并提取具体的提示词内容块
+3. **要素拆分工具 (element.js)** - 将提示词智能拆分为13个标准框架要素
 
 ## 功能特性
 
@@ -21,6 +22,12 @@
 - 📍 **精确定位**：记录每个提示词的起始和结束行号
 - 🔄 **错误恢复**：支持重试机制和备用分析策略
 - 📈 **详细统计**：包含API调用、处理时间等完整统计信息
+
+### 🎯 第三步：要素拆分（element.js）
+- 🤖 **智能拆分**：使用AI将提示词拆分为13个标准框架要素
+- ⚡ **并发处理**：支持5个并发API调用，提高处理效率
+- 📊 **要素分析**：自动统计各要素的覆盖率
+- 🔄 **进度跟踪**：实时显示处理进度和当前处理的提示词
 
 ## 环境要求
 
@@ -62,7 +69,7 @@ OPENAI_API_BASE="https://api.openai.com/v1" OPENAI_API_KEY="your-api-key" node s
 
 ### 🚀 快速开始
 
-完整的提示词分析分为两步：
+完整的提示词分析分为三步：
 
 ```bash
 # 第一步：扫描文件，识别包含提示词的文件
@@ -70,6 +77,9 @@ node src/scan.js
 
 # 第二步：提取具体的提示词内容
 node src/extract.js
+
+# 第三步：拆分提示词为框架要素
+node src/element.js
 ```
 
 ### 📋 第一步：文件扫描 (scan.js)
@@ -129,6 +139,33 @@ node src/extract.js -i ./reports/files.json -o ./reports/prompts.json
 node src/extract.js --verbose
 ```
 
+### 🎯 第三步：要素拆分 (element.js)
+
+将提取的提示词智能拆分为13个标准框架要素。
+
+```bash
+node src/element.js [选项]
+```
+
+**可用选项：**
+- `-i, --input <path>`: 输入文件路径（默认：analysis/prompt-list.json）
+- `-o, --output <path>`: 输出文件路径（默认：analysis/prompt-list-elements.json）
+- `--model <name>`: GPT模型名称（默认：gpt-5）
+- `--concurrency <number>`: 并发处理数量（默认：5）
+- `-h, --help`: 显示帮助信息
+
+**示例：**
+```bash
+# 基本要素拆分（使用默认输入输出）
+node src/element.js
+
+# 指定模型和并发数
+node src/element.js --model gpt-4 --concurrency 3
+
+# 指定输入输出文件
+node src/element.js -i ./reports/prompts.json -o ./reports/elements.json
+```
+
 ### 📊 完整工作流示例
 
 ```bash
@@ -141,8 +178,11 @@ node src/scan.js --verbose
 # 3. 提取提示词内容
 node src/extract.js --verbose
 
-# 4. 查看结果
-cat analysis/prompt-list.json | jq .
+# 4. 拆分框架要素
+node src/element.js
+
+# 5. 查看最终结果
+cat analysis/prompt-list-elements.json | jq .
 ```
 
 ## 支持的文件类型
@@ -219,6 +259,39 @@ cat analysis/prompt-list.json | jq .
 }
 ```
 
+### 🎯 第三步输出 (prompt-list-elements.json)
+
+要素拆分工具生成的框架要素分析：
+
+```json
+{
+  "totalPrompts": 23,
+  "analysisTime": "2025-09-14T12:10:00.000Z",
+  "prompts": [
+    {
+      "promptId": "prompt_001",
+      "sourceFile": "./prompts/example.md",
+      "originalContent": "你是一个Python专家，请帮我...",
+      "elements": {
+        "source_file": "./prompts/example.md",
+        "role_capability": "你是一个Python专家",
+        "task_request": "帮助生成代码",
+        "background_context": "",
+        "instruction_action": "1. 分析需求 2. 编写代码",
+        "output_specification": "输出Python代码",
+        "examples": "",
+        "constraints_limitations": "使用Python 3.8+",
+        "goals_expectations": "生成高质量代码",
+        "information": "",
+        "evaluation_optimization": "",
+        "adjustments": "",
+        "audience": "开发者"
+      }
+    }
+  ]
+}
+```
+
 ### 字段说明
 
 **扫描结果字段：**
@@ -232,6 +305,23 @@ cat analysis/prompt-list.json | jq .
 - `promptId`: 提示词唯一标识符
 - `startLine/endLine`: 提示词在文件中的行号范围
 - `statistics`: 详细的处理统计信息
+
+**要素分析字段：**
+- `originalContent`: 原始提示词内容
+- `elements`: 13个标准框架要素对象
+  - `source_file`: 所在文件
+  - `role_capability`: 角色/能力定义
+  - `task_request`: 任务/请求说明
+  - `background_context`: 背景/情境信息
+  - `instruction_action`: 指令/行动步骤
+  - `output_specification`: 输出规格要求
+  - `examples`: 示例内容
+  - `constraints_limitations`: 限制/约束条件
+  - `goals_expectations`: 目标/期望结果
+  - `information`: 相关信息资源
+  - `evaluation_optimization`: 评估/优化标准
+  - `adjustments`: 调整机制
+  - `audience`: 目标受众
 
 ## 开发
 
@@ -254,26 +344,31 @@ npm run test:coverage
 src/
 ├── models/
 │   ├── data_models.js       # 扫描工具数据模型
-│   └── prompt_models.js     # 提取工具数据模型
+│   ├── prompt_models.js     # 提取工具数据模型
+│   └── element_models.js    # 要素拆分数据模型
 ├── services/
 │   ├── file_scanner.js      # 文件扫描服务
 │   ├── ai_analyzer.js       # AI分析服务（扫描）
 │   ├── output_generator.js  # 输出生成服务
-│   └── prompt_extractor.js  # 提示词提取服务
+│   ├── prompt_extractor.js  # 提示词提取服务
+│   └── prompt_element_analyzer.js  # 要素分析服务
 ├── scan.js                  # 扫描工具CLI入口
-└── extract.js               # 提取工具CLI入口
+├── extract.js               # 提取工具CLI入口
+└── element.js               # 要素拆分CLI入口
 
 tests/
 ├── integration/             # 集成测试
 │   ├── test_scan_workflow.test.js    # 扫描流程测试
 │   ├── test_extract_workflow.test.js # 提取流程测试
+│   ├── test_element_workflow.test.js # 要素拆分流程测试
 │   ├── test_error_handling.test.js   # 错误处理测试
 │   └── ...                           # 其他测试文件
 └── fixtures/                # 测试数据
 
 analysis/                    # 输出目录
 ├── prompt-files.json        # 第一步：文件列表
-└── prompt-list.json         # 第二步：提示词详情
+├── prompt-list.json         # 第二步：提示词详情
+└── prompt-list-elements.json # 第三步：要素分析
 ```
 
 ### 核心模块说明

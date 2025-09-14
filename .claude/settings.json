@@ -10,6 +10,10 @@
           },
           {
             "type": "command",
+            "command": "\necho '📚 Loading second spec content using repomix...\n' && npx repomix specs/003-ai-ai-ai --quiet -o specs-003.xml\n"
+          },
+          {
+            "type": "command",
             "command": "echo '📚 Loading source code content using repomix...\n' && npx repomix src --quiet -o src.xml\n"
           }
         ]
