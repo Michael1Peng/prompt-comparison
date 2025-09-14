@@ -8,6 +8,7 @@
 ### History Context
 
 - 第一个 spec: @specs-002.xml
+- 第二个 spec: @specs-003.xml
 - source code: @src.xml
 
 ### Current Feature: AI提示词深度分析和提取工具 (Branch: 003-ai-ai-ai)
