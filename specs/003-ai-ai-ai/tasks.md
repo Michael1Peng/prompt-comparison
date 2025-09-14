@@ -33,8 +33,8 @@
 - [x] T002 准备测试数据文件：创建 tests/fixtures/ 目录和示例 prompt-files.json
 
 ## Phase 3.2: 数据模型实现与测试
-- [ ] T003 创建 PromptDetail 和 PromptList 数据模型在 src/models/prompt_models.js
-- [ ] T004 编写集成测试验证数据模型在 tests/integration/test_models.test.js (必须先失败)
+- [x] T003 创建 PromptDetail 和 PromptList 数据模型在 src/models/prompt_models.js
+- [x] T004 编写集成测试验证数据模型在 tests/integration/test_models.test.js (必须先失败)
 
 ## Phase 3.3: 提取服务核心功能
 - [ ] T005 创建 prompt_extractor.js 基础结构在 src/services/prompt_extractor.js
@@ -74,6 +74,10 @@
 3. 实现对应功能（T003, T005, T007, T009, T011, T013, T015）
 4. 运行测试，确保通过（GREEN）
 5. 重构代码（如需要）
+
+# 注意：每个功能只需要2个测试用例
+- 正常情况测试
+- 边界情况测试
 ```
 
 ## 并行执行示例
