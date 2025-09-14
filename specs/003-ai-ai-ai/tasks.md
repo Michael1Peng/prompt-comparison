@@ -37,8 +37,8 @@
 - [x] T004 编写集成测试验证数据模型在 tests/integration/test_models.test.js (必须先失败)
 
 ## Phase 3.3: 提取服务核心功能
-- [ ] T005 创建 prompt_extractor.js 基础结构在 src/services/prompt_extractor.js
-- [ ] T006 编写集成测试验证文件读取功能在 tests/integration/test_file_reading.test.js
+- [x] T005 创建 prompt_extractor.js 基础结构在 src/services/prompt_extractor.js
+- [x] T006 编写集成测试验证文件读取功能在 tests/integration/test_file_reading.test.js
 
 ## Phase 3.4: AI分析功能实现
 - [ ] T007 实现 AI 提示词识别功能在 prompt_extractor.js 的 analyzePrompts 方法
