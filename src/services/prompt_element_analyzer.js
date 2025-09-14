@@ -76,7 +76,8 @@ export class PromptElementAnalyzer {
    */
   async analyzeSinglePrompt(prompt) {
     try {
-      console.log(`分析提示词: ${prompt.promptId}`);
+      // 移除这里的console.log，让CLI控制显示
+      // console.log(`分析提示词: ${prompt.promptId}`);
       
       // 调用AI API进行要素拆分
       const elements = await this.callAIForElements(prompt.content);

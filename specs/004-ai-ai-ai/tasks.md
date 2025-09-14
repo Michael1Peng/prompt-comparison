@@ -46,8 +46,8 @@
 - [x] T008 Handle JSON input/output in prompt_element_analyzer.js for analysis/prompt-list-elements.json
 
 ## Phase 3.5: Polish
-- [ ] T009 [P] Add progress logging to element.js CLI
-- [ ] T010 [P] Create README documentation for element extraction feature
+- [x] T009 [P] Add progress logging to element.js CLI
+- [x] T010 [P] Create README documentation for element extraction feature
 
 ## Dependencies
 - Setup (T001-T002) before Tests (T003-T004)

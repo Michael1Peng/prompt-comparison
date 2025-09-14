@@ -35,7 +35,10 @@ async function main() {
   const startTime = Date.now();
   
   try {
-    console.log(chalk.blue('🔍 AI提示词框架要素拆分工具启动...'));
+    console.log(chalk.blue.bold('╔════════════════════════════════════════════════╗'));
+    console.log(chalk.blue.bold('║     🔍 AI提示词框架要素拆分工具 v' + packageJson.version + '        ║'));
+    console.log(chalk.blue.bold('╚════════════════════════════════════════════════╝'));
+    console.log();
     
     // 验证环境
     if (!process.env.OPENAI_API_KEY) {
@@ -76,6 +79,27 @@ async function main() {
     
     // 执行要素拆分
     console.log(chalk.yellow('🤖 AI分析中...'));
+    console.log(chalk.gray(`  模型: ${options.model}`));
+    console.log(chalk.gray(`  并发数: ${options.concurrency}`));
+    console.log('');
+    
+    // 添加进度跟踪
+    let processedCount = 0;
+    const totalCount = inputData.prompts.length;
+    
+    // 监听分析进度（通过修改analyzer来支持）
+    const originalAnalyzeSingle = analyzer.analyzeSinglePrompt.bind(analyzer);
+    analyzer.analyzeSinglePrompt = async function(prompt) {
+      const result = await originalAnalyzeSingle(prompt);
+      processedCount++;
+      const percentage = ((processedCount / totalCount) * 100).toFixed(1);
+      process.stdout.write(chalk.cyan(`\r  进度: [${processedCount}/${totalCount}] ${percentage}% - 正在处理: ${prompt.promptId}${' '.repeat(20)}`));
+      if (processedCount === totalCount) {
+        console.log(''); // 换行
+      }
+      return result;
+    };
+    
     const result = await analyzer.analyzeElements(inputData.prompts);
     
     // 生成输出文件（确保格式符合规范）
@@ -107,7 +131,11 @@ async function main() {
     }
     
     const duration = (Date.now() - startTime) / 1000;
-    console.log(chalk.green(`\n✨ 完成! 耗时: ${duration.toFixed(2)}秒`));
+    console.log('');
+    console.log(chalk.green.bold('╔════════════════════════════════════════════════╗'));
+    console.log(chalk.green.bold('║              ✨ 分析完成！                     ║'));
+    console.log(chalk.green.bold('╚════════════════════════════════════════════════╝'));
+    console.log(chalk.green(`⏱  耗时: ${duration.toFixed(2)}秒`));
     console.log(chalk.green(`📁 结果已保存到: ${outputPath}`));
     
     process.exit(0);
