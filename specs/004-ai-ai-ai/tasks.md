@@ -29,8 +29,8 @@
 - Include exact file paths in descriptions
 
 ## Phase 3.1: Setup
-- [ ] T001 Create project directories: src/models/, src/services/, tests/integration/
-- [ ] T002 [P] Create test fixture: tests/fixtures/sample-prompt-list.json
+- [x] T001 Create project directories: src/models/, src/services/, tests/integration/
+- [x] T002 [P] Create test fixture: tests/fixtures/sample-prompt-list.json
 
 ## Phase 3.2: Tests First (TDD)
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
