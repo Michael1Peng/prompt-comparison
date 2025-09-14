@@ -1,3 +1,19 @@
 {
-  "hooks": {}
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\necho '📚 Loading first spec content using repomix...\n' && npx repomix specs/002-ai-ai-ai --quiet -o specs-002.xml\n"
+          },
+          {
+            "type": "command",
+            "command": "echo '📚 Loading source code content using repomix...\n' && npx repomix src --quiet -o src.xml\n"
+          }
+        ]
+      }
+    ]
+  }
 }

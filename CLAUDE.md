@@ -5,6 +5,11 @@
 
 ## Project Context
 
+### History Context
+
+- 第一个 spec: @specs-002.xml
+- source code: @src.xml
+
 ### Current Feature: AI提示词文件发现和汇总工具 (Branch: 002-ai-ai-ai)
 - **Purpose**: MVP工具，扫描Git仓库识别AI提示词文件，生成JSON分析报告
 - **Tech Stack**: Node.js 18+ ESM, OpenAI API (gpt-5), Jest测试
