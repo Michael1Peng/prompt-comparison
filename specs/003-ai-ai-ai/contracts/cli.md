@@ -3,106 +3,81 @@
 ## 基本命令
 ```bash
 node extract.js
-# 或者
-prompt-finder extract
 ```
 
 ## 输入要求
-- 存在文件: `./analysis/prompt-files.json` (第一步工具的输出)
+- 必须存在 `./analysis/prompt-files.json` 文件（第一步工具的输出）
 - 设置环境变量: `OPENAI_API_KEY=your-key`
-- 可选环境变量: `OPENAI_API_BASE=custom-url` (自定义API基础URL)
-- JSON文件中引用的源文件必须存在且可读
+- 自动读取第一步工具识别的提示词文件列表
 
 ## 输出
-- 控制台: 处理进度和统计信息
+- 控制台: 处理进度信息和统计结果
 - 文件: `./analysis/prompt-list.json`
 
-## JSON输入格式 (来自第一步)
+## JSON格式
 ```json
 {
-  "scanResult": {
-    "totalFiles": 123,
-    "promptFiles": [
-      {
-        "filePath": "src/prompts/system.md",
-        "fileName": "system.md",
-        "content": "...",
-        "isPrompt": true,
-        "confidence": 0.95,
-        "language": null,
-        "category": "system"
-      }
-    ],
-    "scanTimestamp": "2025-09-14T14:30:22Z",
-    "scanDuration": 5420
-  }
-}
-```
-
-## JSON输出格式
-```json
-{
-  "totalFiles": 5,
-  "totalPrompts": 12,
+  "totalFiles": 3,
+  "totalPrompts": 7,
   "prompts": [
     {
-      "promptId": "system.md_15_001",
-      "sourceFile": "src/prompts/system.md",
-      "content": "You are an AI assistant...",
-      "startLine": 15,
-      "endLine": 25
+      "promptId": "prompt_001",
+      "sourceFile": "docs/ai-prompts.md",
+      "content": "You are a helpful AI assistant...\n\nPlease help me with...",
+      "startLine": 5,
+      "endLine": 12
     }
   ],
-  "analysisTime": "2025-09-14T15:45:30Z",
+  "analysisTime": "2025-09-14T14:30:22Z",
   "processingStats": {
-    "successfulFiles": 5,
-    "failedFiles": 0,
-    "totalAPIRequests": 5,
-    "averagePromptsPerFile": 2.4
+    "successFiles": 3,
+    "failedFiles": 0
   }
 }
 ```
 
-## 命令行选项
+## 命令选项
 ```bash
-# 基本用法
-node extract.js
-
-# 指定输入输出路径  
-node extract.js --input ./custom/prompt-files.json --output ./custom/prompt-list.json
-
-# 设置并发数
-node extract.js --concurrency 3
-
-# 显示详细信息
-node extract.js --verbose
-
-# 使用自定义API配置
-node extract.js --api-base https://custom-api.com/v1 --model gpt-5
-
 # 帮助信息
 node extract.js --help
+node extract.js -h
 
-# 版本信息
+# 版本信息  
 node extract.js --version
+node extract.js -v
+
+# 详细输出模式
+node extract.js --verbose
 ```
 
 ## 退出码
-- `0`: 成功完成分析
+- `0`: 成功
 - `1`: 输入文件不存在或格式错误
-- `2`: API密钥问题
-- `3`: 所有文件处理失败
-- `4`: 其他系统错误
+- `2`: API密钥未设置或无效
+- `3`: 其他运行时错误
 
-## 错误处理行为
-- **输入JSON不存在**: 退出并提示运行第一步工具
-- **个别文件处理失败**: 记录警告，跳过该文件，继续处理
-- **API调用失败**: 记录错误，跳过该文件，继续处理
-- **输出目录不存在**: 自动创建
-- **输出文件已存在**: 完全覆盖
+## 错误处理
+- 输入JSON文件不存在: 提示运行第一步工具
+- 单个文件处理失败: 记录警告，继续处理其他文件
+- API调用失败: 记录错误，跳过该文件
+- 所有文件都失败: 生成空的输出JSON，退出码为1
 
-## 性能预期
-- 5个并发API调用
-- 每个文件处理时间: 1-3秒
-- 内存使用: <200MB
-- 支持处理100+个文件
+## 性能要求
+- 支持5个并发API调用
+- 处理时间 < 1分钟（对于已识别的文件）
+- 内存使用 < 500MB
+
+## 日志格式
+```
+🔍 AI提示词深度分析器启动...
+📁 读取输入文件: analysis/prompt-files.json
+✓ 发现 3 个待处理文件
+🤖 开始分析提示词内容...
+  1/3 处理文件: docs/ai-prompts.md
+  2/3 处理文件: src/prompts/system.md
+  3/3 处理文件: config/templates.yaml
+✓ 分析完成: 发现 7 个提示词
+📊 生成分析报告...
+✅ 提取完成! 耗时: 23.45s
+📄 分析报告已保存至: analysis/prompt-list.json
+```

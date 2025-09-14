@@ -8,7 +8,7 @@
 1. Load feature spec from Input path ✓
    → If not found: ERROR "No feature spec at {path}"
 2. Fill Technical Context (scan for NEEDS CLARIFICATION) ✓
-   → Detect Project Type from context (single - CLI tool continuation) 
+   → Detect Project Type from context (single CLI tool extending existing)
    → Set Structure Decision based on project type ✓
 3. Evaluate Constitution Check section below ✓
    → If violations exist: Document in Complexity Tracking
@@ -29,32 +29,32 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-创建AI提示词文件深度分析和提取工具，作为第一步文件发现工具的后续功能。该工具读取 `analysis/prompt-files.json` 中已识别的提示词文件，并发分析每个文件的完整内容，使用AI API提取其中包含的具体提示词，输出包含提示词完整内容、来源文件和位置信息的 `analysis/prompt-list.json` 文件。采用Node.js实现，基于TDD方法，关注主流程可运行。
+创建第二步AI提示词深度分析和提取工具，读取第一步输出的JSON文件，使用AI API深度分析每个文件中的具体提示词内容，支持单文件多提示词场景，并将完整提示词内容和位置信息输出到新的JSON文件。基于现有Node.js架构扩展，复用AIAnalyzer和OutputGenerator等模块，采用TDD方法开发。
 
 ## Technical Context
-**Language/Version**: Node.js 18+ with ESM modules  
-**Primary Dependencies**: OpenAI SDK, fs-extra, p-limit, commander.js, chalk  
-**Storage**: File system (JSON input/output), 读取现有的prompt-files.json  
-**Testing**: Jest testing framework  
+**Language/Version**: Node.js 18+ with ESM modules (基于现有架构)  
+**Primary Dependencies**: OpenAI SDK, commander.js, chalk, fs-extra, p-limit (复用现有依赖)  
+**Storage**: File system (JSON input/output), 读取 analysis/prompt-files.json，输出 analysis/prompt-list.json  
+**Testing**: Jest testing framework (复用现有测试框架)  
 **Target Platform**: Linux/macOS command line environment  
-**Project Type**: single (CLI tool continuation)  
-**Performance Goals**: 处理已识别的提示词文件，5个并发API调用，快速提取提示词内容  
-**Constraints**: 简单MVP实现，基于现有架构扩展，遇到错误直接跳过，确保主流程顺利  
-**Scale/Scope**: 处理第一步输出的提示词文件列表，支持多提示词文件，精确位置标注
+**Project Type**: single (扩展现有CLI工具)  
+**Performance Goals**: 处理已识别的提示词文件，5个并发API调用，<1分钟完成提取  
+**Constraints**: 基于第一步工具的输出，复用现有模块，保持MVP简单性  
+**Scale/Scope**: 处理第一步工具识别的提示词文件，单文件支持多提示词识别
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 **Simplicity**:
-- Projects: 1 (cli tool continuation)
-- Using framework directly? ✓ (继续使用Node.js APIs，commander.js CLI框架)
-- Single data model? ✓ (PromptDetail + PromptList)
-- Avoiding patterns? ✓ (直接函数调用，复用现有模块化架构)
+- Projects: 1 (扩展现有CLI工具)
+- Using framework directly? ✓ (直接使用Node.js APIs，复用commander.js框架)
+- Single data model? ✓ (PromptDetail + PromptList，扩展现有数据模型)
+- Avoiding patterns? ✓ (直接函数调用，复用现有服务架构)
 
 **Architecture**:
-- EVERY feature as library? ✓ (扩展现有服务模块架构)
-- Libraries listed: prompt-reader(JSON解析), content-extractor(提示词提取), list-generator(输出生成)
-- CLI per library: 新增 extract 命令，复用现有 --help, --version, --format 等选项
+- EVERY feature as library? ✓ (内容提取器、提示词分析器、输出生成器作为服务模块)
+- Libraries listed: prompt-reader(读取第一步JSON), content-extractor(提示词提取), list-generator(输出生成)
+- CLI per library: main CLI with extract command or separate extract.js
 - Library docs: llms.txt format planned ✓
 
 **Testing (NON-NEGOTIABLE)**:
@@ -68,12 +68,12 @@
 **Observability**:
 - Structured logging included? ✓ (使用console with structured format)
 - Frontend logs → backend? N/A (CLI only)
-- Error context sufficient? ✓ (详细错误信息和堆栈)
+- Error context sufficient? ✓ (错误日志记录，跳过失败文件继续处理)
 
 **Versioning**:
-- Version number assigned? ✓ (1.1.0 - 新功能版本)
+- Version number assigned? ✓ (基于现有版本递增)
 - BUILD increments on every change? ✓
-- Breaking changes handled? N/A (新增功能，向后兼容)
+- Breaking changes handled? N/A (新增功能，不影响现有工具)
 
 ## Project Structure
 
@@ -90,60 +90,60 @@ specs/003-ai-ai-ai/
 
 ### Source Code (repository root)
 ```
-# Option 1: Single project (DEFAULT - 扩展现有结构)
+# Option 1: Single project (DEFAULT) - 扩展现有结构
 src/
-├── models/              # 扩展PromptDetail, PromptList数据模型
-├── services/            # 新增prompt-reader, content-extractor, list-generator
-├── cli/                 # 扩展现有CLI，新增extract命令
-└── lib/                 # 通用工具函数
+├── models/              # 扩展: PromptDetail, PromptList数据模型
+├── services/            # 扩展: prompt-reader, content-extractor, list-generator
+├── cli/                 # 新增: extract.js命令行工具
+└── lib/                 # 复用: 通用工具函数
 
 tests/
-├── contract/            # API合约测试  
-├── integration/         # 端到端集成测试
-└── unit/                # 单元测试
+├── contract/            # 新增: 提取工具API合约测试
+├── integration/         # 新增: 端到端提取测试
+└── unit/                # 新增: 新服务的单元测试
 
 analysis/                # 输入输出目录
-├── prompt-files.json    # 输入文件（第一步输出）
-└── prompt-list.json     # 输出文件（本步输出）
+├── prompt-files.json    # 输入: 第一步工具输出
+└── prompt-list.json     # 输出: 第二步工具输出
 ```
 
-**Structure Decision**: Option 1 - 单项目结构，扩展现有CLI工具架构
+**Structure Decision**: Option 1 - 单项目扩展现有架构，复用现有模块和服务
 
 ## Phase 0: Outline & Research
 
-基于Technical Context中的技术选型大部分已明确（复用现有架构），主要研究重点：
+基于Implementation Clarifications中的澄清内容，以及复用现有技术栈的决策：
 
-1. **提示词内容提取策略**:
-   - Decision: 使用GPT-5进行文件内容深度分析，识别并分离多个提示词
-   - Rationale: 复用现有AI API配置，专注于提取完整提示词内容而非结构化分析
-   - Alternatives considered: 基于规则的文本分割，NLP库处理
+1. **已澄清的技术决策**:
+   - Decision: 复用现有Node.js架构和依赖
+   - Rationale: 保持代码一致性，避免重复实现
+   - Alternatives considered: 独立实现(增加维护成本)
 
-2. **多提示词文件处理方案**:
-   - Decision: AI API调用时要求返回数组格式，每个提示词包含内容和位置信息
-   - Rationale: 一次API调用处理整个文件，获得准确的上下文和位置标注
-   - Alternatives considered: 分段处理，正则表达式匹配
+2. **AI分析策略**:
+   - Decision: 让AI根据任务完整性自动识别提示词边界
+   - Rationale: 更智能的分割方式，避免机械按段落分割
+   - Alternatives considered: 正则表达式分割(不够智能)，段落分割(可能切断完整提示词)
 
-3. **位置信息标注方法**:
-   - Decision: 基于行号的精确位置标注（startLine, endLine）
-   - Rationale: 简单准确，便于后续文件定位和内容验证
-   - Alternatives considered: 字符位置，段落索引
+3. **数据模型扩展**:
+   - Decision: 基于现有PromptFile模型，新增PromptDetail和PromptList
+   - Rationale: 保持数据结构一致性，便于后续分析
+   - Alternatives considered: 全新数据结构(不兼容现有架构)
 
-**Output**: ✓ research.md 已通过内嵌研究完成，无未解决的NEEDS CLARIFICATION
+**Output**: ✓ research.md 已通过澄清完成，无未解决的NEEDS CLARIFICATION
 
 ## Phase 1: Design & Contracts
 
 ### 数据模型设计
 
-基于功能规格中的Key Entities：
+基于功能规格中的Key Entities和Implementation Clarifications：
 
 **PromptDetail**:
 ```typescript
 interface PromptDetail {
-  promptId: string;         // 提示词唯一标识符
+  promptId: string;         // 自动生成序号 (prompt_001, prompt_002...)
   sourceFile: string;       // 来源文件路径
-  content: string;          // 提示词完整内容
-  startLine: number;        // 在文件中的起始行号
-  endLine: number;          // 在文件中的结束行号
+  content: string;          // 提示词完整内容 (保持原始格式)
+  startLine: number;        // 起始行号 (0-based, 包含上下文)
+  endLine: number;          // 结束行号 (0-based, 包含上下文)
 }
 ```
 
@@ -154,7 +154,10 @@ interface PromptList {
   totalPrompts: number;     // 发现的提示词总数
   prompts: PromptDetail[];  // 提示词详情数组
   analysisTime: string;     // 分析时间戳
-  processingStats: object;  // 处理统计信息
+  processingStats: {        // 简单处理统计
+    successFiles: number;   // 成功处理的文件数
+    failedFiles: number;    // 处理失败的文件数
+  };
 }
 ```
 
@@ -162,24 +165,25 @@ interface PromptList {
 
 **CLI Interface Contract**:
 ```bash
-# 主要命令
-prompt-finder extract [options]
+# 主要命令 (新工具)
+extract.js [options]
 
-# 选项
---input, -i <path>     # 输入JSON文件路径 (default: ./analysis/prompt-files.json)
---output, -o <path>    # 输出文件路径 (default: ./analysis/prompt-list.json) 
---concurrency, -c <n>  # 并发处理数量 (default: 5)
+# 选项 (保持简单，固定输入输出)
 --help, -h             # 帮助信息
 --version, -v          # 版本信息
---format <type>        # 输出格式: json|yaml (default: json)
+--verbose             # 详细输出 (显示处理进度)
+
+# 固定路径
+输入: ./analysis/prompt-files.json
+输出: ./analysis/prompt-list.json
 ```
 
 ### 集成测试场景
 
-基于用户故事的测试场景：
-1. **读取prompt-files.json并提取提示词** → 生成正确的prompt-list.json输出
-2. **处理多提示词文件** → 正确识别和分离每个提示词及其位置
-3. **处理文件读取错误和API调用失败** → 记录错误并继续处理其他文件
+基于用户故事和边界情况的测试场景：
+1. **读取第一步JSON并提取提示词** → 生成正确的提示词列表JSON
+2. **处理单文件多提示词场景** → 正确识别和分割多个提示词
+3. **处理文件不存在的情况** → 记录警告并跳过，继续处理其他文件
 
 **Output**: ✓ data-model.md, /contracts/cli.md, quickstart.md, CLAUDE.md已生成
 
@@ -189,10 +193,10 @@ prompt-finder extract [options]
 **Task Generation Strategy**:
 - Load `/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
-- 每个数据模型 → 模型扩展任务 [P]
-- 每个服务模块 → 服务实现任务 [P]  
+- 每个数据模型 → 模型创建任务 [P]
+- 每个服务模块 → 服务实现任务 [P]
 - 每个用户场景 → 集成测试任务
-- CLI接口 → 命令行接口扩展任务
+- CLI接口 → 命令行接口实现任务
 
 **Ordering Strategy**:
 - TDD order: 测试先于实现
@@ -206,21 +210,21 @@ prompt-finder extract [options]
 ## Phase 3+: Future Implementation
 *These phases are beyond the scope of the /plan command*
 
-**Phase 3**: Task execution (/tasks command creates tasks.md)  
-**Phase 4**: Implementation (execute tasks.md following constitutional principles)  
+**Phase 3**: Task execution (/tasks command creates tasks.md)
+**Phase 4**: Implementation (execute tasks.md following constitutional principles)
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
 *Fill ONLY if Constitution Check has violations that must be justified*
 
-无违反项 - 设计符合简单性原则，扩展现有架构。
+无违反项 - 设计符合简单性原则，复用现有架构。
 
 ## Progress Tracking
 *This checklist is updated during execution flow*
 
 **Phase Status**:
 - [x] Phase 0: Research complete (/plan command)
-- [x] Phase 1: Design complete (/plan command)  
+- [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete

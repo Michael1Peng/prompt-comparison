@@ -2,80 +2,55 @@
 
 ## 核心技术选型
 
-### 输入数据处理
-**Decision**: 读取并解析第一步输出的 `analysis/prompt-files.json` 文件  
-**Rationale**: 基于现有工作流程，确保数据一致性和完整性
+### 架构复用策略
+**Decision**: 复用现有Node.js架构和服务模块  
+**Rationale**: 保持代码一致性，避免重复实现，降低维护成本  
+**Alternatives considered**: 独立实现新架构(增加复杂度和维护成本)
 
-### AI API调用策略
-**Decision**: 复用现有GPT-5配置，专注提示词内容提取  
-**Rationale**: 保持技术栈统一，降低系统复杂度
+### AI分析策略
+**Decision**: 让AI根据任务和设计完整性自动识别提示词边界  
+**Rationale**: 更智能的语义分析，能正确识别完整的提示词任务，避免机械分割  
+**Alternatives considered**: 正则表达式分割(不够智能)，段落分割(可能切断完整提示词)，固定分隔符(不灵活)
 
-### 提示词内容提取策略
-**Decision**: 使用GPT-5进行文件内容深度分析，识别并分离多个提示词
-**Rationale**: 
-- 复用现有AI API配置和错误处理机制
-- 专注于提取完整提示词内容，不做复杂结构化分析
-- 一次API调用可处理整个文件，获得准确上下文
-**Alternatives considered**: 
-- 基于规则的文本分割（可能错过复杂格式）
-- NLP库处理（增加依赖复杂度）
-- 正则表达式匹配（准确性不足）
+### 数据模型扩展
+**Decision**: 基于现有PromptFile模型，新增PromptDetail和PromptList  
+**Rationale**: 保持数据结构一致性，便于后续分析和与第一步工具的集成  
+**Alternatives considered**: 全新数据结构(不兼容现有架构)，直接修改现有模型(破坏向后兼容性)
 
-### 多提示词文件处理方案
-**Decision**: AI API调用时要求返回数组格式，每个提示词包含内容和位置信息
-**Rationale**: 
-- 一次API调用处理整个文件，效率高
-- 获得准确的上下文理解和位置标注
-- 避免分段处理可能导致的上下文丢失
-**Alternatives considered**:
-- 分段处理（可能丢失上下文）
-- 多轮API调用（效率低，成本高）
-- 预处理分割（准确性不够）
-
-### 位置信息标注方法
-**Decision**: 基于行号的精确位置标注（startLine, endLine）
-**Rationale**: 
-- 简单准确，易于实现和验证
-- 便于后续文件定位和内容查看
-- 符合开发者习惯的定位方式
-**Alternatives considered**:
-- 字符位置（对用户不友好）
-- 段落索引（可能不够精确）
-- 正则匹配位置（容易出错）
+### 行号处理策略  
+**Decision**: 0-based indexing，包含上下文行，简单处理  
+**Rationale**: 符合编程习惯，包含完整语境有助于理解提示词，简单实现减少复杂度  
+**Alternatives considered**: 1-based indexing(与编程习惯不符)，严格边界(可能丢失上下文)
 
 ### 错误处理策略
-**Decision**: 遇到任何处理错误直接跳过，记录日志，继续处理
-**Rationale**: 
-- 符合MVP简单性原则
-- 确保主流程不被阻塞
-- 提供足够的错误信息用于调试
-**Alternatives considered**:
-- 重试机制（增加复杂度）
-- 用户交互确认（影响自动化流程）
-- 失败即停止（影响整体处理）
+**Decision**: 错误日志 + 跳过继续，保持MVP简单性  
+**Rationale**: 确保单个文件失败不影响整体流程，符合MVP快速迭代的要求  
+**Alternatives considered**: 复杂错误跟踪(增加实现复杂度)，失败即停止(用户体验差)
 
-### 并发控制
-**Decision**: 复用现有的5个并发API调用限制
-**Rationale**: 
-- 保持与第一步工具的一致性
-- 平衡处理速度和API限制
-- 复用现有的限流控制逻辑
-
-### 架构扩展
-**Decision**: 基于现有Node.js ESM模块架构扩展
-**Rationale**: 
-- 代码复用性最大化
-- 保持项目结构一致性
-- 降低学习和维护成本
+### 命令行接口设计
+**Decision**: 创建新的独立命令工具，固定输入输出路径  
+**Rationale**: 职责单一，用户使用简单，与第一步工具形成清晰的流水线关系  
+**Alternatives considered**: 集成到scan.js子命令(增加复杂度)，可配置路径(增加用户负担)
 
 ## MVP范围确认
-- ✅ 读取 `analysis/prompt-files.json` 文件
-- ✅ 并发处理文件内容（5个并发）
-- ✅ AI API提取多个提示词内容
-- ✅ 记录精确位置信息（行号）
-- ✅ 输出到 `analysis/prompt-list.json`
-- ✅ TDD测试（每个函数2个用例）
-- ✅ 错误跳过机制
-- ❌ 复杂结构化分析（后续版本）
-- ❌ 重试机制（后续版本）
-- ❌ 进度条显示（后续版本）
+基于互动澄清的结果：
+- ✅ 读取 analysis/prompt-files.json 的 scanResult.promptFiles 数组
+- ✅ 并发处理所有列出的文件，无条件过滤
+- ✅ AI自动识别每个文件中的提示词，支持单文件多提示词
+- ✅ 保持原始格式，记录精确行号位置信息  
+- ✅ 输出到 analysis/prompt-list.json，包含统计信息
+- ✅ 错误直接跳过，不阻塞主流程
+- ✅ TDD严格执行，测试先于实现
+
+## 核心依赖确认
+基于现有架构，复用以下模块：
+- **OpenAI SDK**: GPT API调用，复用现有配置
+- **AIAnalyzer**: 扩展现有分析器，支持提示词边界识别
+- **OutputGenerator**: 复用输出生成逻辑，支持新的数据格式
+- **FileScanner**: 复用文件读取逻辑
+- **fs-extra, p-limit, chalk**: 复用现有工具库
+
+## 技术风险评估
+**低风险**: 基于成熟架构扩展，核心技术栈已验证  
+**主要挑战**: AI提示词边界识别的准确性，通过MVP简单策略降低风险  
+**缓解策略**: 保持简单实现，错误容错，快速迭代验证
