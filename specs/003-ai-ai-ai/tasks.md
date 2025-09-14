@@ -49,8 +49,8 @@
 - [x] T010 编写集成测试验证行号定位在 tests/integration/test_line_location.test.js
 
 ## Phase 3.6: JSON输出功能
-- [ ] T011 实现 JSON 输出功能在 prompt_extractor.js 的 generateOutput 方法
-- [ ] T012 编写集成测试验证输出格式在 tests/integration/test_json_output.test.js
+- [x] T011 实现 JSON 输出功能在 prompt_extractor.js 的 generateOutput 方法
+- [x] T012 编写集成测试验证输出格式在 tests/integration/test_json_output.test.js
 
 ## Phase 3.7: CLI接口实现
 - [ ] T013 创建 extract.js CLI 入口文件在 src/extract.js

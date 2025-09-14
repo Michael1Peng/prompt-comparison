@@ -370,10 +370,39 @@ ${content}`;
       const outputDir = path.dirname(this.outputPath);
       await fs.ensureDir(outputDir);
       
+      // 验证promptList格式
+      if (!promptList || !promptList.toJSON) {
+        throw new Error('无效的PromptList对象');
+      }
+      
+      // 生成符合规格的JSON输出
+      const outputData = promptList.toJSON();
+      
+      // 确保输出包含所有必需字段
+      const finalOutput = {
+        totalFiles: outputData.totalFiles || 0,
+        totalPrompts: outputData.totalPrompts || 0,
+        processingStats: outputData.processingStats || {
+          successfulFiles: 0,
+          failedFiles: 0,
+          errors: []
+        },
+        analysisTime: outputData.analysisTime || new Date().toISOString(),
+        prompts: outputData.prompts || []
+      };
+      
       // 写入JSON文件
-      await fs.writeJson(this.outputPath, promptList.toJSON(), { spaces: 2 });
+      await fs.writeJson(this.outputPath, finalOutput, { spaces: 2 });
       
       console.log(`输出已保存到: ${this.outputPath}`);
+      console.log(`JSON格式: ${JSON.stringify({
+        totalFiles: finalOutput.totalFiles,
+        totalPrompts: finalOutput.totalPrompts,
+        successfulFiles: finalOutput.processingStats.successfulFiles,
+        failedFiles: finalOutput.processingStats.failedFiles
+      })}`);
+      
+      return this.outputPath;
       
     } catch (error) {
       throw new Error(`生成输出失败: ${error.message}`);
