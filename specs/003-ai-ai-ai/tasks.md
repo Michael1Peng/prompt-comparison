@@ -41,8 +41,8 @@
 - [x] T006 编写集成测试验证文件读取功能在 tests/integration/test_file_reading.test.js
 
 ## Phase 3.4: AI分析功能实现
-- [ ] T007 实现 AI 提示词识别功能在 prompt_extractor.js 的 analyzePrompts 方法
-- [ ] T008 编写集成测试验证 AI 分析功能在 tests/integration/test_ai_analysis.test.js
+- [x] T007 实现 AI 提示词识别功能在 prompt_extractor.js 的 analyzePrompts 方法
+- [x] T008 编写集成测试验证 AI 分析功能在 tests/integration/test_ai_analysis.test.js
 
 ## Phase 3.5: 行号定位功能
 - [ ] T009 实现行号定位功能在 prompt_extractor.js 的 locateLineNumbers 方法

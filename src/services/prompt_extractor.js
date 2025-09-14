@@ -152,13 +152,154 @@ export class PromptExtractor {
    * 使用AI分析提示词内容
    */
   async analyzePrompts(content, filePath) {
-    // 这个方法将在T007中实现
-    // 现在返回模拟数据以便测试
-    return [{
-      content: content.substring(0, 100),
-      startLine: 1,
-      endLine: 5
-    }];
+    try {
+      const systemPrompt = `你是一个专业的AI提示词识别专家。你的任务是分析给定的文件内容，识别其中的独立提示词块。
+
+提示词的特征：
+1. 明确的角色定义（如"你是..."、"You are..."）
+2. 任务描述或指令（如"帮我..."、"Generate..."、"Create..."）
+3. 系统提示或用户请求
+4. 代码生成、问答、创作等AI相关请求
+
+请识别文件中的所有独立提示词块，并返回JSON格式：
+{
+  "prompts": [
+    {
+      "content": "提示词完整内容",
+      "startLine": 起始行号,
+      "endLine": 结束行号
+    }
+  ]
+}
+
+注意：
+- 每个独立的提示词应该分开识别
+- 行号从1开始计数
+- 如果没有找到提示词，返回空数组`;
+
+      const userPrompt = `分析以下文件内容，识别其中的AI提示词：
+
+文件路径: ${filePath}
+文件内容:
+${content}`;
+
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.1,
+        response_format: { type: 'json_object' }
+      });
+
+      const result = JSON.parse(response.choices[0].message.content);
+      
+      // 如果没有找到提示词，返回空数组
+      if (!result.prompts || result.prompts.length === 0) {
+        return [];
+      }
+
+      // 验证并修正行号
+      const lines = content.split('\n');
+      const validatedPrompts = result.prompts.map(prompt => {
+        // 确保行号在有效范围内
+        const startLine = Math.max(1, Math.min(prompt.startLine, lines.length));
+        const endLine = Math.max(startLine, Math.min(prompt.endLine, lines.length));
+        
+        // 如果AI没有返回具体内容，尝试从原文件提取
+        let promptContent = prompt.content;
+        if (!promptContent && startLine && endLine) {
+          promptContent = lines.slice(startLine - 1, endLine).join('\n');
+        }
+        
+        return {
+          content: promptContent,
+          startLine: startLine,
+          endLine: endLine
+        };
+      });
+
+      return validatedPrompts;
+      
+    } catch (error) {
+      console.warn(`AI分析失败: ${error.message}`);
+      // 如果AI分析失败，返回简单的启发式结果
+      return this.fallbackAnalysis(content);
+    }
+  }
+
+  /**
+   * 备用分析方法（当AI失败时）
+   */
+  fallbackAnalysis(content) {
+    // 处理空内容
+    if (!content || content.trim() === '') {
+      return [];
+    }
+    
+    const lines = content.split('\n');
+    const prompts = [];
+    
+    // 简单的启发式规则
+    const promptPatterns = [
+      /you are/i,
+      /你是/,
+      /generate/i,
+      /create/i,
+      /help me/i,
+      /帮我/,
+      /system prompt/i,
+      /user prompt/i
+    ];
+    
+    let inPrompt = false;
+    let currentPrompt = {
+      content: '',
+      startLine: 0,
+      endLine: 0
+    };
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const hasPromptPattern = promptPatterns.some(pattern => pattern.test(line));
+      
+      if (hasPromptPattern && !inPrompt) {
+        // 开始新的提示词
+        inPrompt = true;
+        currentPrompt = {
+          content: line,
+          startLine: i + 1,
+          endLine: i + 1
+        };
+      } else if (inPrompt) {
+        // 继续当前提示词
+        if (line.trim() === '' && currentPrompt.content) {
+          // 空行可能表示提示词结束
+          prompts.push({ ...currentPrompt });
+          inPrompt = false;
+        } else if (line.trim()) {
+          currentPrompt.content += '\n' + line;
+          currentPrompt.endLine = i + 1;
+        }
+      }
+    }
+    
+    // 处理最后一个提示词
+    if (inPrompt && currentPrompt.content) {
+      prompts.push(currentPrompt);
+    }
+    
+    // 如果没有找到，返回整个文件作为一个提示词（如果文件较短且有内容）
+    if (prompts.length === 0 && lines.length <= 50 && lines.length > 1) {
+      prompts.push({
+        content: content,
+        startLine: 1,
+        endLine: lines.length
+      });
+    }
+    
+    return prompts;
   }
 
   /**
