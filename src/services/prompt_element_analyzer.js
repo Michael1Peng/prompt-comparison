@@ -212,6 +212,129 @@ ${content}`;
     });
     return elements;
   }
+
+  /**
+   * 从JSON文件读取提示词列表
+   * @param {string} inputPath - 输入文件路径
+   * @returns {Promise<Array>} 提示词列表
+   */
+  async readPromptsFromJSON(inputPath) {
+    try {
+      const fs = (await import('fs-extra')).default;
+      const path = (await import('path')).default;
+      
+      // 确保文件存在
+      if (!await fs.pathExists(inputPath)) {
+        throw new Error(`输入文件不存在: ${inputPath}`);
+      }
+      
+      // 读取JSON文件
+      const data = await fs.readJson(inputPath);
+      
+      // 验证数据格式
+      if (!data.prompts || !Array.isArray(data.prompts)) {
+        throw new Error('输入文件格式无效: 缺少prompts数组');
+      }
+      
+      // 验证每个提示词的格式
+      const validatedPrompts = data.prompts.map(prompt => {
+        if (!prompt.promptId || !prompt.sourceFile || !prompt.content) {
+          throw new Error(`提示词格式无效: ${JSON.stringify(prompt)}`);
+        }
+        return {
+          promptId: prompt.promptId,
+          sourceFile: prompt.sourceFile,
+          content: prompt.content,
+          startLine: prompt.startLine || null,
+          endLine: prompt.endLine || null
+        };
+      });
+      
+      console.log(`成功读取 ${validatedPrompts.length} 个提示词`);
+      return validatedPrompts;
+      
+    } catch (error) {
+      throw new Error(`读取输入文件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 将分析结果保存到JSON文件
+   * @param {ElementAnalysisOutput} output - 分析结果
+   * @param {string} outputPath - 输出文件路径
+   * @returns {Promise<void>}
+   */
+  async saveResultsToJSON(output, outputPath) {
+    try {
+      const fs = (await import('fs-extra')).default;
+      const path = (await import('path')).default;
+      
+      // 确保输出目录存在
+      const outputDir = path.dirname(outputPath);
+      await fs.ensureDir(outputDir);
+      
+      // 准备输出数据
+      const outputData = output.toJSON();
+      
+      // 确保输出格式符合规范
+      const formattedOutput = {
+        totalPrompts: outputData.totalPrompts,
+        analysisTime: outputData.analysisTime,
+        prompts: outputData.prompts.map(prompt => ({
+          promptId: prompt.promptId,
+          sourceFile: prompt.sourceFile,
+          originalContent: prompt.originalContent,
+          elements: {
+            source_file: prompt.elements.source_file || prompt.sourceFile,
+            role_capability: prompt.elements.role_capability || '',
+            task_request: prompt.elements.task_request || '',
+            background_context: prompt.elements.background_context || '',
+            instruction_action: prompt.elements.instruction_action || '',
+            output_specification: prompt.elements.output_specification || '',
+            examples: prompt.elements.examples || '',
+            constraints_limitations: prompt.elements.constraints_limitations || '',
+            goals_expectations: prompt.elements.goals_expectations || '',
+            information: prompt.elements.information || '',
+            evaluation_optimization: prompt.elements.evaluation_optimization || '',
+            adjustments: prompt.elements.adjustments || '',
+            audience: prompt.elements.audience || ''
+          }
+        }))
+      };
+      
+      // 写入JSON文件
+      await fs.writeJson(outputPath, formattedOutput, { spaces: 2 });
+      
+      console.log(`结果已保存到: ${outputPath}`);
+      
+    } catch (error) {
+      throw new Error(`保存输出文件失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 执行完整的分析流程（从文件到文件）
+   * @param {string} inputPath - 输入文件路径
+   * @param {string} outputPath - 输出文件路径
+   * @returns {Promise<ElementAnalysisOutput>} 分析结果
+   */
+  async analyzeFromFile(inputPath, outputPath) {
+    try {
+      // 读取输入
+      const prompts = await this.readPromptsFromJSON(inputPath);
+      
+      // 执行分析
+      const results = await this.analyzeElements(prompts);
+      
+      // 保存输出
+      await this.saveResultsToJSON(results, outputPath);
+      
+      return results;
+      
+    } catch (error) {
+      throw new Error(`文件分析流程失败: ${error.message}`);
+    }
+  }
 }
 
 // 导出默认实例创建函数

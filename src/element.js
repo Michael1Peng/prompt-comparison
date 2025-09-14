@@ -78,12 +78,9 @@ async function main() {
     console.log(chalk.yellow('🤖 AI分析中...'));
     const result = await analyzer.analyzeElements(inputData.prompts);
     
-    // 生成输出文件
+    // 生成输出文件（确保格式符合规范）
     const outputPath = path.resolve(options.output);
-    const outputDir = path.dirname(outputPath);
-    await fs.ensureDir(outputDir);
-    
-    await fs.writeJson(outputPath, result.toJSON(), { spaces: 2 });
+    await analyzer.saveResultsToJSON(result, outputPath);
     
     // 显示结果统计
     console.log(chalk.green('✅ 分析完成！'));
