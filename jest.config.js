@@ -29,8 +29,8 @@ export default {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   
-  // 测试超时
-  testTimeout: 10000,
+  // 测试超时 - 增加到30秒以支持真实API调用
+  testTimeout: 30000,
   
   // 清理模拟
   clearMocks: true,

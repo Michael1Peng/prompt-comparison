@@ -45,7 +45,7 @@
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
 - [x] T009 [P] PromptDetail and PromptList data models in src/models/data_models.js
 - [x] T010 [P] PromptReader service for reading first step JSON output in src/services/prompt_reader.js
-- [ ] T011 [P] ContentExtractor service with AI boundary detection in src/services/content_extractor.js
+- [x] T011 [P] ContentExtractor service with AI boundary detection in src/services/content_extractor.js
 - [ ] T012 [P] ListGenerator service for JSON output in src/services/list_generator.js
 - [ ] T013 Main CLI extract.js integrating all services
 

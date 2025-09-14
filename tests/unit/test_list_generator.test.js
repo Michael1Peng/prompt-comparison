@@ -1,5 +1,4 @@
-import pkg from '@jest/globals';
-const { describe, test, expect, beforeEach, afterEach } = pkg;
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import fs from 'fs-extra';
 import path from 'path';
 import { ListGenerator } from '../../src/services/list_generator.js';
