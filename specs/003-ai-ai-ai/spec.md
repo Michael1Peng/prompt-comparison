@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-ai-ai-ai`  
 **Created**: 2025-09-14  
-**Status**: Draft  
+**Status**: Requirements Clarified  
 **Input**: User description: "现在有很多质量非常高的 AI 智能体流程的开源项目，比如说 AI 编码相关的，他们里面有大量优秀的提示词设计。
 然后仓库里面这些大量的提示词文件，我想把它们都找到。对他们进行统一化的框架层面的要素分析，去分析他们 每个提示词都有哪些元素？最后能够汇总在一个表格里面去做对比。
 第一步需求已实现: 实现一个 AI agent 工作流能够把当前仓库所有带有提示词内容的文件都找出来，之后汇总到一个固定的文件 `analysis/prompt-files.json` 里面。
@@ -83,5 +83,49 @@
 - [x] Requirements generated
 - [x] Entities identified
 - [x] Review checklist passed
+
+---
+
+## Requirements Clarification Summary *(added after user interaction)*
+
+通过互动问答澄清的实现细节：
+
+### 核心实现决策
+1. **提示词识别方式**: 使用AI智能识别不同的提示词内容块（非规则分割）
+2. **提取信息范围**: 仅提取基础信息（完整内容、文件路径、起始结束行号）
+3. **位置记录格式**: 行号格式（startLine, endLine）
+4. **并发处理配置**: 固定5个并发文件读取
+5. **错误处理策略**: 在最终JSON中包含错误统计信息
+6. **代码架构选择**: 在现有 `src/services/` 下添加新的服务模块
+
+### 最终输出JSON结构
+```json
+{
+  "totalFiles": 5,
+  "totalPrompts": 12,
+  "processingStats": {
+    "successfulFiles": 4,
+    "failedFiles": 1,
+    "errors": [...]
+  },
+  "analysisTime": "2025-09-14T...",
+  "prompts": [
+    {
+      "promptId": "prompt_001", 
+      "sourceFile": "docs/ai-prompt.md",
+      "content": "完整提示词内容...",
+      "startLine": 5,
+      "endLine": 15
+    }
+  ]
+}
+```
+
+### 技术实现要点
+- **输入**: `analysis/prompt-files.json`（第一步输出）
+- **处理**: 5个并发 + AI智能分析
+- **输出**: `analysis/prompt-list.json`
+- **架构**: 扩展现有Node.js项目结构
+- **测试**: 严格TDD开发方式
 
 ---
