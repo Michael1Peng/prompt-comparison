@@ -38,9 +38,9 @@
 - [x] T004 [P] Integration test for element extraction workflow in tests/integration/test_element_workflow.test.js
 
 ## Phase 3.3: Core Implementation
-- [ ] T005 [P] PromptElement data model in src/models/element_models.js
-- [ ] T006 [P] Element analyzer service in src/services/prompt_element_analyzer.js with analyzeElements method
-- [ ] T007 Main CLI entry point in src/element.js integrating all services
+- [x] T005 [P] PromptElement data model in src/models/element_models.js
+- [x] T006 [P] Element analyzer service in src/services/prompt_element_analyzer.js with analyzeElements method
+- [x] T007 Main CLI entry point in src/element.js integrating all services
 
 ## Phase 3.4: Integration
 - [ ] T008 Handle JSON input/output in prompt_element_analyzer.js for analysis/prompt-list-elements.json
