@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-ai-ai-ai`  
 **Created**: 2025-09-14  
-**Status**: Draft  
+**Status**: Requirements Clarified  
 **Input**: User description: "现在有很多质量非常高的 AI 智能体流程的开源项目，比如说 AI 编码相关的，他们里面有大量优秀的提示词设计。
 然后仓库里面这些大量的提示词文件，我想把它们都找到。对他们进行统一化的框架层面的要素分析，去分析他们 每个提示词都有哪些元素？最后能够汇总在一个表格里面去做对比。
 第一步需求已实现: 实现一个 AI agent 工作流能够把当前仓库所有带有提示词内容的文件都找出来，之后汇总到一个固定的文件 `analysis/prompt-files.json` 里面。
@@ -43,17 +43,50 @@
 
 ### Key Entities *(include if feature involves data)*
 - **PromptDetail**: 代表一个具体的提示词内容
-  - `promptId`: 提示词唯一标识符
-  - `sourceFile`: 来源文件路径
-  - `content`: 提示词完整内容
-  - `startLine`: 在文件中的起始行号
-  - `endLine`: 在文件中的结束行号
+  - `promptId`: 提示词唯一标识符（自动生成序号）
+  - `sourceFile`: 来源文件路径  
+  - `content`: 提示词完整内容（保持原始格式）
+  - `startLine`: 在文件中的起始行号（从0开始，包含上下文）
+  - `endLine`: 在文件中的结束行号（从0开始，包含上下文）
 - **PromptList**: 代表所有提示词的汇总结果
   - `totalFiles`: 处理的文件总数
   - `totalPrompts`: 发现的提示词总数
   - `prompts`: PromptDetail对象数组
   - `analysisTime`: 分析时间戳
-  - `processingStats`: 处理统计信息
+  - `processingStats`: 简单的处理统计信息（成功/失败文件数量）
+
+## Implementation Clarifications *(from interactive Q&A)*
+
+### Input Data Structure
+- 读取 `analysis/prompt-files.json` 的 `scanResult.promptFiles` 数组
+- 处理其中所有文件，无需条件过滤  
+- 复用现有的 `PromptFile` 和 `ScanResult` 数据模型
+
+### AI Analysis Strategy  
+- 让AI根据任务和设计的完整性自动识别提示词，不按段落机械分割
+- 保持原始格式，包含markdown、换行符等格式信息
+- AI分析即可，不追求过高精准度，保持MVP简单性
+
+### Line Number Rules
+- 从0开始计数（0-based indexing）
+- 包含相关上下文行（空行、注释、说明文字等）  
+- 处理方式保持简单，不需要复杂的边界计算
+
+### Command Interface
+- 创建新的命令行工具（非 `scan.js` 子命令）
+- 固定输入路径：`analysis/prompt-files.json`  
+- 固定输出路径：`analysis/prompt-list.json`
+- 不需要额外的命令行参数选项
+
+### Error Handling
+- 所有错误情况：输出错误日志 + 跳过继续处理
+- 不在输出JSON中记录详细错误信息
+- 保持MVP产品的简单性，避免复杂的错误跟踪
+
+### Code Architecture
+- 复用现有模块：`AIAnalyzer`, `OutputGenerator` 等
+- 保持与现有项目架构一致的代码组织
+- 作为当前项目的新功能模块，不独立实现
 
 ---
 
@@ -78,10 +111,12 @@
 
 - [x] User description parsed
 - [x] Key concepts extracted
-- [x] Ambiguities resolved
+- [x] Ambiguities resolved through interactive Q&A
 - [x] User scenarios defined
 - [x] Requirements generated
 - [x] Entities identified
 - [x] Review checklist passed
+- [x] Requirements clarified through Q&A
+- [x] Technical implementation details confirmed
 
 ---
