@@ -1,5 +1,4 @@
-import pkg from '@jest/globals';
-const { describe, test, expect, beforeEach, afterEach } = pkg;
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import fs from 'fs-extra';
 import path from 'path';
 import { PromptReader } from '../../src/services/prompt_reader.js';
@@ -67,17 +66,26 @@ describe('PromptReader Service Unit Tests', () => {
     const reader = new PromptReader();
 
     // 测试readPromptFiles方法
-    try {
-      const result = await reader.readPromptFiles(validInputFile);
-      
-      // TDD: 这应该失败，因为服务还没有实现
-      expect(true).toBe(false); // 强制失败，表示测试不应该成功
+    const result = await reader.readPromptFiles(validInputFile);
+    
+    // 验证返回结果
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toHaveProperty('filePath');
+    expect(result[0]).toHaveProperty('fileName');
+    expect(result[0]).toHaveProperty('content');
+    expect(result[0]).toHaveProperty('isPrompt');
+    expect(result[0]).toHaveProperty('confidence');
+    
+    expect(result[0].filePath).toBe('docs/system-prompt.md');
+    expect(result[0].fileName).toBe('system-prompt.md');
+    expect(result[0].isPrompt).toBe(true);
+    expect(result[0].confidence).toBe(0.95);
 
-    } catch (error) {
-      // 验证抛出正确的"尚未实现"错误
-      expect(error.message).toContain('尚未实现');
-      expect(error.message).toContain('PromptReader.readPromptFiles()');
-    }
+    expect(result[1].language).toBe('python');
+    expect(result[1].category).toBe('tutorial');
+
+    expect(result[2].category).toBe('configuration');
 
     // 测试配置获取（这应该工作，因为已经实现）
     const config = reader.getConfig();
@@ -87,25 +95,6 @@ describe('PromptReader Service Unit Tests', () => {
 
     // 验证实例属性
     expect(reader.defaultInputPath).toBe('./analysis/prompt-files.json');
-
-    // 如果实现了，应该验证以下内容（当前会失败）:
-    // expect(Array.isArray(result)).toBe(true);
-    // expect(result).toHaveLength(3);
-    // expect(result[0]).toHaveProperty('filePath');
-    // expect(result[0]).toHaveProperty('fileName');
-    // expect(result[0]).toHaveProperty('content');
-    // expect(result[0]).toHaveProperty('isPrompt');
-    // expect(result[0]).toHaveProperty('confidence');
-    // 
-    // expect(result[0].filePath).toBe('docs/system-prompt.md');
-    // expect(result[0].fileName).toBe('system-prompt.md');
-    // expect(result[0].isPrompt).toBe(true);
-    // expect(result[0].confidence).toBe(0.95);
-    //
-    // expect(result[1].language).toBe('python');
-    // expect(result[1].category).toBe('tutorial');
-    //
-    // expect(result[2].category).toBe('configuration');
   });
 
   test('边界情况: 处理无效文件格式或空数据，返回空数组或抛出验证错误', async () => {
@@ -127,54 +116,54 @@ describe('PromptReader Service Unit Tests', () => {
     try {
       const result = await reader.readPromptFiles(invalidInputFile);
       
-      // TDD: 这应该失败，因为服务还没有实现
-      expect(true).toBe(false); // 强制失败，表示测试不应该成功
+      // 这应该失败，因为文件格式无效
+      expect(true).toBe(false); // 强制失败，表示应该抛出错误
 
     } catch (error) {
-      // 验证抛出正确的"尚未实现"错误
-      expect(error.message).toContain('尚未实现');
-      expect(error.message).toContain('PromptReader.readPromptFiles()');
+      // 验证抛出格式错误
+      expect(error.message).toContain('输入文件格式无效');
     }
 
     // 测试处理不存在的文件
     try {
       const result = await reader.readPromptFiles('non-existent-file.json');
       
-      // TDD: 这应该失败，因为服务还没有实现
-      expect(true).toBe(false); // 强制失败，表示测试不应该成功
+      // 这应该失败，因为文件不存在
+      expect(true).toBe(false); // 强制失败，表示应该抛出错误
 
     } catch (error) {
-      // 验证抛出正确的"尚未实现"错误
-      expect(error.message).toContain('尚未实现');
-      expect(error.message).toContain('PromptReader.readPromptFiles()');
+      // 验证抛出文件不存在错误
+      expect(error.message).toContain('输入文件不存在');
     }
 
     // 测试_validateInputFormat方法
-    try {
-      const isValid = reader._validateInputFormat({});
-      
-      // TDD: 这应该失败，因为方法还没有实现
-      expect(true).toBe(false); // 强制失败，表示测试不应该成功
-
-    } catch (error) {
-      // 验证抛出正确的"尚未实现"错误
-      expect(error.message).toContain('尚未实现');
-      expect(error.message).toContain('PromptReader._validateInputFormat()');
-    }
+    const isValidEmpty = reader._validateInputFormat({});
+    expect(isValidEmpty).toBe(false);
+    
+    const isValidWrongFormat = reader._validateInputFormat({ wrongField: {} });
+    expect(isValidWrongFormat).toBe(false);
+    
+    const isValidEmptyPrompts = reader._validateInputFormat({ 
+      scanResult: { promptFiles: [] } 
+    });
+    expect(isValidEmptyPrompts).toBe(true);
+    
+    const isValidGoodFormat = reader._validateInputFormat({
+      scanResult: {
+        promptFiles: [{
+          filePath: 'test.md',
+          fileName: 'test.md',
+          content: 'test content',
+          isPrompt: true,
+          confidence: 0.9
+        }]
+      }
+    });
+    expect(isValidGoodFormat).toBe(true);
 
     // 测试配置获取仍然工作
     const config = reader.getConfig();
     expect(config.defaultInputPath).toBe('./analysis/prompt-files.json');
-
-    // 如果实现了，边界情况应该验证以下内容（当前会失败）:
-    // 1. 无效JSON格式应该抛出解析错误
-    // 2. 缺少必需字段应该抛出验证错误
-    // 3. 空的promptFiles数组应该返回空数组
-    // 4. 不存在的文件应该抛出文件不存在错误
-    //
-    // expect(() => reader._validateInputFormat({})).toThrow();
-    // expect(() => reader._validateInputFormat({ wrongField: {} })).toThrow();
-    // expect(reader._validateInputFormat({ scanResult: { promptFiles: [] } })).toBe(true);
   });
 
   // 测试自定义输入路径配置
