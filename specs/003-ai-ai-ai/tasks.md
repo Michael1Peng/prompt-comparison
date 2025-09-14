@@ -34,9 +34,9 @@
 - [x] T002 [P] 扩展数据模型：在 src/models/data_models.js 中添加 PromptDetail, PromptList 类
 - [x] T003 [P] 创建CLI命令：src/extract.js 主入口文件
 
-## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
+## Phase 3.2: Tests First (TDD) ⚠️ T004 COMPLETED - MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-- [ ] T004 [P] Contract test for CLI interface in tests/contract/test_extract_cli.test.js
+- [x] T004 [P] Contract test for CLI interface in tests/contract/test_extract_cli.test.js
 - [ ] T005 [P] Integration test for prompt extraction workflow in tests/integration/test_prompt_extraction.test.js
 - [ ] T006 [P] Unit test for PromptReader service in tests/unit/test_prompt_reader.test.js (2 test cases)
 - [ ] T007 [P] Unit test for ContentExtractor service in tests/unit/test_content_extractor.test.js (2 test cases)

@@ -144,7 +144,7 @@ async function main() {
     // 根据错误类型设置不同的退出码
     if (error.message.includes('输入文件不存在')) {
       process.exit(1);
-    } else if (error.message.includes('API密钥')) {
+    } else if (error.message.includes('OPENAI_API_KEY') || error.message.includes('API密钥')) {
       process.exit(2);
     } else {
       process.exit(3);
