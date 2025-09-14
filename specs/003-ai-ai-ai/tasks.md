@@ -29,8 +29,8 @@
 - 每个代码步骤后跟随对应集成测试
 
 ## Phase 3.1: Setup
-- [ ] T001 创建项目基础目录结构：src/models/, src/services/, tests/integration/
-- [ ] T002 准备测试数据文件：创建 tests/fixtures/ 目录和示例 prompt-files.json
+- [x] T001 创建项目基础目录结构：src/models/, src/services/, tests/integration/
+- [x] T002 准备测试数据文件：创建 tests/fixtures/ 目录和示例 prompt-files.json
 
 ## Phase 3.2: 数据模型实现与测试
 - [ ] T003 创建 PromptDetail 和 PromptList 数据模型在 src/models/prompt_models.js

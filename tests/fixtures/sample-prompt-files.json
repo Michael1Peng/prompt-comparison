@@ -1,0 +1,36 @@
+{
+  "scanResult": {
+    "totalFiles": 3,
+    "promptFiles": [
+      {
+        "filePath": "tests/fixtures/test-prompt1.md",
+        "fileName": "test-prompt1.md",
+        "content": "# AI Assistant Prompt\n\nYou are a helpful AI assistant that helps users with coding tasks.\nYour responses should be clear and concise.\n\n## Task Instructions\n\nGenerate a Python function that calculates factorial.\nThe function should handle edge cases properly.",
+        "isPrompt": true,
+        "confidence": 0.95,
+        "language": "python",
+        "category": "code-generation"
+      },
+      {
+        "filePath": "tests/fixtures/test-prompt2.md",
+        "fileName": "test-prompt2.md",
+        "content": "# System Prompt\n\nYou are an expert in JavaScript.\n\n# User Request\n\nCreate a React component for a todo list.\nInclude state management and event handlers.",
+        "isPrompt": true,
+        "confidence": 0.92,
+        "language": "javascript",
+        "category": "code-generation"
+      },
+      {
+        "filePath": "tests/fixtures/test-mixed.md",
+        "fileName": "test-mixed.md",
+        "content": "# Documentation\n\nThis is a regular documentation file.\n\n## AI Prompt Section\n\nYou are a documentation assistant.\nHelp users write clear technical documentation.\n\n## Regular Content\n\nThis is just normal content, not a prompt.",
+        "isPrompt": true,
+        "confidence": 0.88,
+        "language": null,
+        "category": "documentation"
+      }
+    ],
+    "scanTimestamp": "2025-09-14T10:00:00Z",
+    "scanDuration": 1500
+  }
+}
