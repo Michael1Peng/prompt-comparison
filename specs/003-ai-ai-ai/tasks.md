@@ -53,8 +53,8 @@
 - [x] T012 编写集成测试验证输出格式在 tests/integration/test_json_output.test.js
 
 ## Phase 3.7: CLI接口实现
-- [ ] T013 创建 extract.js CLI 入口文件在 src/extract.js
-- [ ] T014 编写端到端集成测试在 tests/integration/test_extract_workflow.test.js
+- [x] T013 创建 extract.js CLI 入口文件在 src/extract.js
+- [x] T014 编写端到端集成测试在 tests/integration/test_extract_workflow.test.js
 
 ## Phase 3.8: 错误处理和统计
 - [ ] T015 实现错误处理和统计功能在 prompt_extractor.js
