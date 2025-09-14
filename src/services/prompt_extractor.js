@@ -306,11 +306,58 @@ ${content}`;
    * 定位行号
    */
   locateLineNumbers(content, promptContent) {
-    // 这个方法将在T009中实现
+    if (!content || !promptContent) {
+      return {
+        startLine: 1,
+        endLine: 1
+      };
+    }
+    
     const lines = content.split('\n');
+    const promptLines = promptContent.split('\n');
+    
+    if (promptLines.length === 0) {
+      return {
+        startLine: 1,
+        endLine: 1
+      };
+    }
+    
+    // 查找第一行出现的位置（精确匹配）
+    const firstLine = promptLines[0].trim();
+    let startLine = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim() === firstLine) {
+        startLine = i + 1; // 行号从1开始
+        break;
+      }
+    }
+    
+    // 如果精确匹配失败，尝试包含匹配
+    if (startLine === -1) {
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim().includes(firstLine) || (firstLine && firstLine.includes(lines[i].trim()))) {
+          startLine = i + 1;
+          break;
+        }
+      }
+    }
+    
+    // 如果还是没找到，返回默认值
+    if (startLine === -1) {
+      return {
+        startLine: 1,
+        endLine: Math.min(promptLines.length, lines.length)
+      };
+    }
+    
+    // 计算结束行号
+    const endLine = Math.min(startLine + promptLines.length - 1, lines.length);
+    
     return {
-      startLine: 1,
-      endLine: Math.min(5, lines.length)
+      startLine: startLine,
+      endLine: endLine
     };
   }
 

@@ -45,8 +45,8 @@
 - [x] T008 编写集成测试验证 AI 分析功能在 tests/integration/test_ai_analysis.test.js
 
 ## Phase 3.5: 行号定位功能
-- [ ] T009 实现行号定位功能在 prompt_extractor.js 的 locateLineNumbers 方法
-- [ ] T010 编写集成测试验证行号定位在 tests/integration/test_line_location.test.js
+- [x] T009 实现行号定位功能在 prompt_extractor.js 的 locateLineNumbers 方法
+- [x] T010 编写集成测试验证行号定位在 tests/integration/test_line_location.test.js
 
 ## Phase 3.6: JSON输出功能
 - [ ] T011 实现 JSON 输出功能在 prompt_extractor.js 的 generateOutput 方法
