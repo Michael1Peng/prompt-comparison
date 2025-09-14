@@ -34,8 +34,8 @@
 
 ## Phase 3.2: Tests First (TDD)
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-- [ ] T003 [P] Contract test for CLI interface in tests/contract/test_element_cli.test.js
-- [ ] T004 [P] Integration test for element extraction workflow in tests/integration/test_element_workflow.test.js
+- [x] T003 [P] Contract test for CLI interface in tests/contract/test_element_cli.test.js
+- [x] T004 [P] Integration test for element extraction workflow in tests/integration/test_element_workflow.test.js
 
 ## Phase 3.3: Core Implementation
 - [ ] T005 [P] PromptElement data model in src/models/element_models.js
