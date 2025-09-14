@@ -22,7 +22,7 @@ program
   .version(packageJson.version)
   .option('-i, --input <path>', '输入文件路径', 'analysis/prompt-list.json')
   .option('-o, --output <path>', '输出文件路径', 'analysis/prompt-list-elements.json')
-  .option('--model <name>', 'GPT模型名称', 'gpt-3.5-turbo')
+  .option('--model <name>', 'GPT模型名称', 'gpt-5')
   .option('--concurrency <number>', '并发处理数量', '5')
   .parse();
 

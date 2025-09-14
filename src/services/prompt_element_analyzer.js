@@ -24,7 +24,7 @@ export class PromptElementAnalyzer {
     this.limit = pLimit(this.concurrencyLimit);
     
     // GPT模型设置
-    this.model = options.model || 'gpt-3.5-turbo';
+    this.model = options.model || 'gpt-5';
   }
 
   /**
