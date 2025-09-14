@@ -10,26 +10,27 @@
 - 第一个 spec: @specs-002.xml
 - source code: @src.xml
 
-### Current Feature: AI提示词文件发现和汇总工具 (Branch: 002-ai-ai-ai)
-- **Purpose**: MVP工具，扫描Git仓库识别AI提示词文件，生成JSON分析报告
-- **Tech Stack**: Node.js 18+ ESM, OpenAI API (gpt-5), Jest测试
-- **Architecture**: 模块化设计 - file-scanner, ai-analyzer, output-generator
-- **Key Dependencies**: openai, commander, chalk, fs-extra, ignore, p-limit
+### Current Feature: AI提示词文件深度分析和提取工具 (Branch: 003-ai-ai-ai)
+- **Purpose**: 第二步工具，读取第一步输出的JSON，深度分析提取每个文件中的具体提示词内容
+- **Tech Stack**: Node.js 18+ ESM, OpenAI API (gpt-5), Jest测试 (基于现有架构扩展)
+- **Architecture**: 扩展现有模块 - prompt-reader, content-extractor, list-generator
+- **Key Dependencies**: openai, commander, chalk, fs-extra, p-limit (复用现有依赖)
 
 ### Implementation Status
-- ✅ Specification complete (specs/002-ai-ai-ai/spec.md) 
-- ✅ Plan complete (specs/002-ai-ai-ai/plan.md)
-- ✅ Research & design docs complete
+- ✅ Specification complete (specs/003-ai-ai-ai/spec.md) 
+- ✅ Plan complete (specs/003-ai-ai-ai/plan.md)
+- ✅ Research & design docs complete (research.md, data-model.md, contracts/, quickstart.md)
 - ⏳ Next: /tasks command to generate implementation tasks
 
-### Core Requirements Reminder
+### Core Requirements Reminder  
+- 读取第一步输出: analysis/prompt-files.json 作为输入
+- 提取完整提示词内容，支持单文件多提示词场景
+- 记录精确位置信息: sourceFile, startLine, endLine
+- 输出到 analysis/prompt-list.json，包含统计信息
+- 错误直接跳过，不阻塞主流程
 - TDD严格执行: 测试先于实现，RED-GREEN-Refactor
-- 5个并发API调用处理文件
-- 支持常见文本格式: .md, .txt, .js, .py, .json, .yaml, .ts
-- JSON输出到 ./analysis/ 目录
-- CLI界面with进度条和详细错误处理
 
 ### Recent Changes (Last 3)
-1. 2025-09-13: Updated research to use GPT-5 (released Aug 2025) instead of gpt-3.5-turbo
-2. 2025-09-13: Generated implementation plan with Phase 0-1 complete  
-3. 2025-09-13: Added research, data-model, contracts, and quickstart docs
+1. 2025-09-14: Added Feature 003 - 深度分析和提取工具 (第二步)
+2. 2025-09-14: Generated complete design docs for prompt content extraction  
+3. 2025-09-14: Created data models for PromptDetail and PromptList output
